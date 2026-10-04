@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台北市建築用地基地開發分析與設計評估系統</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background: white !important; color: black !important; font-size: 11pt !important; }
+      .print-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; break-inside: avoid; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-white shadow-inner">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
+            基地開發分析與設計評估系統
+            <span class="text-xs bg-sky-950 text-sky-300 border border-sky-700 px-2 py-0.5 rounded-full font-normal hidden sm:inline-block">台北市土管模組</span>
+          </h1>
+          <p class="text-xs text-slate-400">Taipei City Architectural Feasibility Assessment & Massing Engine</p>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="flex items-center space-x-2">
+        <button id="btnPreviewModal" type="button" onclick="openReportPreview()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-md shadow-sm transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+          </svg>
+          <span class="hidden sm:inline">報告成果預覽</span>
+          <span class="sm:hidden">預覽</span>
+        </button>
+
+        <button id="btnLoadDemo" type="button" class="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-700 transition">
+          載入範例
+        </button>
+
+        <label class="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-700 transition cursor-pointer flex items-center gap-1">
+          <span>讀取JSON</span>
+          <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="importJSONFile(event)">
+        </label>
+        
+        <!-- Export Dropdown -->
+        <div class="relative inline-block text-left" id="exportDropdownWrapper">
+          <button id="btnExportMenu" type="button" class="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-sky-600 hover:bg-sky-500 rounded-md shadow-sm transition gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            匯出
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+
+          <div id="exportMenu" class="hidden absolute right-0 mt-2 w-52 rounded-lg shadow-xl bg-white text-slate-800 ring-1 ring-black ring-opacity-5 z-50 py-1.5 divide-y divide-slate-100">
+            <div class="py-1">
+              <button onclick="exportToWord()" class="w-full text-left px-4 py-2 text-xs hover:bg-sky-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-600"></span> Word 報告格式 (.doc)
+              </button>
+              <button onclick="exportToMarkdown()" class="w-full text-left px-4 py-2 text-xs hover:bg-sky-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-slate-700"></span> Markdown 格式 (.md)
+              </button>
+            </div>
+            <div class="py-1">
+              <button onclick="exportToCSV()" class="w-full text-left px-4 py-2 text-xs hover:bg-sky-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span> 試算量體數據表 (.csv)
+              </button>
+              <button onclick="exportToJSON()" class="w-full text-left px-4 py-2 text-xs hover:bg-sky-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-600"></span> 完整專案存檔 (.json)
+              </button>
+            </div>
+            <div class="py-1">
+              <button onclick="openReportPreview()" class="w-full text-left px-4 py-2 text-xs hover:bg-sky-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-purple-600"></span> A4 正式預覽 / 列印 PDF
+              </button>
+              <button onclick="copyFormattedReport()" class="w-full text-left px-4 py-2 text-xs hover:bg-sky-50 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-600"></span> 複製文字至剪貼簿
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-2xl border border-slate-700 flex items-center gap-3 text-sm">
+    <div id="toastIcon" class="text-sky-400">ℹ️</div>
+    <div id="toastMsg">通知訊息</div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Input Form Sections (8 Cols) -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- 0. 報告基本資訊 -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-sky-100 text-sky-700 rounded-md">📄</span>
+              專案與報告基本資訊
+            </h2>
+            <span class="text-xs text-slate-400">Header Meta</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">專案名稱</label>
+              <input id="projName" type="text" value="台北市大安區忠孝復興商圈更新案" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">評估日期</label>
+              <input id="evalDate" type="date" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">規劃建築師 / 事務所</label>
+              <input id="archName" type="text" value="李大中建築師事務所" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">委託業主 / 開發商</label>
+              <input id="clientName" type="text" value="盛豐建設開發股份有限公司" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+          </div>
+        </section>
+
+        <!-- 一、土地基本資料與現況調查 -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-emerald-100 text-emerald-700 rounded-md">📍</span>
+              一、 土地基本資料與現況調查
+            </h2>
+            <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium">地籍與基地條件</span>
+          </div>
+
+          <!-- 地籍基本資訊 -->
+          <div class="space-y-4">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">1.1 地籍基本資訊</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">座落位置</label>
+                <input id="siteLocation" type="text" value="台北市大安區忠孝東路三段" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">地號及筆數</label>
+                <input id="lotNumbers" type="text" value="懷生段三小段 120, 121 等共 2 筆" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- 基地面積雙向換算 -->
+            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+              <div class="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
+                <span>土地總面積（平方公尺 ⇄ 坪 雙向連動）</span>
+                <span class="text-[11px] text-slate-400">換算係數: 1 m² = 0.3025 坪</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="relative">
+                  <input id="areaM2" type="number" step="0.01" value="1250.00" class="w-full text-sm font-mono-num font-semibold px-3 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">m²</span>
+                </div>
+                <div class="relative">
+                  <input id="areaPing" type="number" step="0.01" value="378.12" class="w-full text-sm font-mono-num font-semibold px-3 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">坪</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">土地所有權屬</label>
+                <select id="landOwnership" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                  <option value="私有土地（100% 完整產權）">私有土地（100% 完整產權）</option>
+                  <option value="私有土地（產權人數多元）">私有土地（產權人數多元）</option>
+                  <option value="公私共有土地（含市有/國有地）">公私共有土地（含市有/國有地）</option>
+                  <option value="公有公用/國有非公用土地">公有公用/國有非公用土地</option>
+                  <option value="其他特定權屬">其他特定權屬</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">產權限制 / 他項權利</label>
+                <input id="propRestriction" type="text" value="無查封，有一順位金融機構抵押權設定" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- 周邊道路與鄰房 -->
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">1.2 周邊道路與鄰房條件</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">主面臨道路寬度 & 屬性</label>
+                <div class="flex gap-2">
+                  <input id="roadMainWidth" type="number" step="0.5" value="30" class="w-24 text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                  <span class="self-center text-xs text-slate-500">米</span>
+                  <select id="roadMainType" class="flex-1 text-sm px-2 py-2 border border-slate-300 rounded-lg bg-white">
+                    <option value="都市計畫道路">都市計畫道路</option>
+                    <option value="現有巷道">現有巷道</option>
+                    <option value="既成道路">既成道路</option>
+                    <option value="私設通路">私設通路</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">次面臨道路寬度 & 屬性 (角地/雙面路)</label>
+                <div class="flex gap-2">
+                  <input id="roadSubWidth" type="number" step="0.5" value="8" class="w-24 text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                  <span class="self-center text-xs text-slate-500">米</span>
+                  <select id="roadSubType" class="flex-1 text-sm px-2 py-2 border border-slate-300 rounded-lg bg-white">
+                    <option value="都市計畫道路">都市計畫道路</option>
+                    <option value="現有巷道" selected>現有巷道</option>
+                    <option value="無次要道路">無次要道路</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">建築線指定狀況</label>
+                <select id="lineStatus" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="已指定（北市建字第112345號）">已指定（文號已登錄）</option>
+                  <option value="尚未指定（臨現有巷道需申請指定）">尚未指定（需辦理指定）</option>
+                  <option value="免指定（臨已開闢都市計畫道路）">免指定（臨已開闢計畫道路）</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">台北市公告消防通道</label>
+                <select id="fireLane" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="非台北市公告消防通道">非公告消防通道</option>
+                  <option value="屬台北市公告消防通道（禁停/淨空要求）">屬台北市公告消防通道</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">畸零地與現況佔用</label>
+                <select id="irregularLand" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="完整基地，無畸零地問題且無佔用">完整基地 / 無佔用爭議</option>
+                  <option value="需辦理畸零地合併申購或調處">需辦理畸零地合併/申購</option>
+                  <option value="有既有違章/地上物待拆遷排除">有地上物/佔用需拆遷排除</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 鄰房情況 -->
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <label class="block text-xs font-semibold text-slate-700 mb-2">周邊鄰房現況與地下室調查</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <span class="text-[11px] text-slate-500 block mb-0.5">左側鄰房：</span>
+                  <input id="neighborLeft" type="text" value="5層樓 RC構造 / 無地下室" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white">
+                </div>
+                <div>
+                  <span class="text-[11px] text-slate-500 block mb-0.5">右側鄰房：</span>
+                  <input id="neighborRight" type="text" value="12層樓 SRC構造 / 地下3層" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white">
+                </div>
+                <div>
+                  <span class="text-[11px] text-slate-500 block mb-0.5">後側鄰房：</span>
+                  <input id="neighborBack" type="text" value="4層樓 加強磚造 / 無地下室" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white">
+                </div>
+              </div>
+            </div>
+
+            <!-- 公用管線現況 -->
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider pt-2">1.3 公用事業管線現況</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">台電配電設備現況</label>
+                <select id="powerEquip" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="需依規留設室內專用配電受電室">需依規留設室內受電室</option>
+                  <option value="臨路既有電桿/變壓器需辦理遷移">既有電桿/變壓器需申請遷移</option>
+                  <option value="既有地下引進管路容量可沿用">既有地下引進管路容量充足</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">公共污水下水道銜接</label>
+                <select id="sewerSystem" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="已完成公用污水幹管銜接可直接納管">已完成公用污水幹管直接納管</option>
+                  <option value="尚未普及，需自行設置建築物專用污水設施">尚未普及，需自設專用污水處理設施</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 二、都市計畫與土地使用管制（土管分析） -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-indigo-100 text-indigo-700 rounded-md">⚖️</span>
+              二、 都市計畫與土地使用管制（土管分析）
+            </h2>
+            <span class="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-medium">台北市土管規則</span>
+          </div>
+
+          <!-- 快速台北市土地使用分區選取器 -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">台北市常見土地使用分區快速設定：</label>
+            <div class="flex flex-wrap gap-1.5" id="zoneBadgeContainer">
+              <button type="button" onclick="applyZonePreset('第二種住宅區 (住二)', 35, 120)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">住二 (35/120)</button>
+              <button type="button" onclick="applyZonePreset('第三種住宅區 (住三)', 45, 225)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">住三 (45/225)</button>
+              <button type="button" onclick="applyZonePreset('住三之二', 45, 400)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">住三之二 (45/400)</button>
+              <button type="button" onclick="applyZonePreset('第四種住宅區 (住四)', 50, 300)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">住四 (50/300)</button>
+              <button type="button" onclick="applyZonePreset('第一種商業區 (商一)', 55, 360)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">商一 (55/360)</button>
+              <button type="button" onclick="applyZonePreset('第二種商業區 (商二)', 65, 630)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">商二 (65/630)</button>
+              <button type="button" onclick="applyZonePreset('第三種商業區 (商三)', 56, 560)" class="px-2.5 py-1 text-xs font-medium rounded bg-sky-100 border border-sky-300 text-sky-800 transition">商三 (56/560)</button>
+              <button type="button" onclick="applyZonePreset('第四種商業區 (商四)', 75, 800)" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-sky-100 text-slate-700 transition">商四 (75/800)</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">法定土地使用分區</label>
+              <input id="zoningName" type="text" value="第三種商業區 (商三)" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">法定建蔽率 (%)</label>
+              <input id="coverageRate" type="number" step="0.1" value="56" class="w-full text-sm font-mono-num font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">法定容積率 (%)</label>
+              <input id="farRate" type="number" step="1" value="560" class="w-full text-sm font-mono-num font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">業主預計開發業種</label>
+              <input id="plannedUsage" type="text" value="集合住宅複合低樓層精品店鋪及商務事務所" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">台北市土地使用管制合規評估</label>
+              <select id="usageCompliance" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                <option value="完全符合允許使用項目">完全符合分區允許使用項目</option>
+                <option value="屬附條件允許使用項目（需附屬規定或公聽）">屬附條件允許使用項目</option>
+                <option value="不允許使用（需都市計畫通盤檢討變更）">不允許使用</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">特別管制與退縮規定說明</label>
+            <input id="specialZoningNotice" type="text" value="臨主要道路需依都設通檢退縮留設4公尺無遮簷人行步道，並留設連續植栽帶" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+          </div>
+        </section>
+
+        <!-- 三、法規限制與特別審查評估 -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-amber-100 text-amber-700 rounded-md">🔍</span>
+              三、 法規限制與特別審查評估
+            </h2>
+            <span class="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-medium">門檻自動警示</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- 結構外審 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkStructuralReview" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkStructuralReview" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  結構外審 (高度 > 50m 或超高層)
+                  <span id="badgeStructuralReview" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">未達門檻</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">建築高度超過50米或鋼構造特殊結構，需委託公會結構外審委員會審查。</p>
+              </div>
+            </div>
+
+            <!-- 深開挖審查 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkDeepExcavation" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkDeepExcavation" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  深開挖安全審查 (深度 ≥ 12m 或 3層)
+                  <span id="badgeDeepExcavation" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">未達門檻</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">台北市深開挖地下層逾3層或深逾12公尺，依法需辦理委外結構大地施工專案外審。</p>
+              </div>
+            </div>
+
+            <!-- 都市設計審議 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkUrbanDesign" checked class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkUrbanDesign" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  都市設計審議 (都審)
+                  <span id="badgeUrbanDesign" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-rose-100 text-rose-700">需辦理都審</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">特定商業區、捷運聯開、危老退縮申請容獎或基地規模超過特定面積需提送都市設計審議會。</p>
+              </div>
+            </div>
+
+            <!-- 交通影響評估 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkTrafficImpact" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkTrafficImpact" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  交通影響評估 (交評)
+                  <span id="badgeTrafficImpact" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">免辦交評</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">總停車位數達一定規模（通常住宅超過 300~500 輛或樓地板龐大商場），需送交工局交評。</p>
+              </div>
+            </div>
+
+            <!-- 山坡地與地質敏感 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkHillside" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkHillside" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  山坡地管制與地質敏感區
+                  <span id="badgeHillside" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">平地非敏感</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">台北市列管山坡地範圍需進行水土保持計畫、坵塊坡度分析及鑽探地質安全評估。</p>
+              </div>
+            </div>
+
+            <!-- 環境影響評估 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkEIA" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkEIA" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  環境影響評估 (環評)
+                  <span id="badgeEIA" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">免辦環評</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">高樓建築達120公尺以上或特定大量體商場開發案方需提送台北市環保局環評審查。</p>
+              </div>
+            </div>
+
+            <!-- 樹木保護條例 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkTreeProtect" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkTreeProtect" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  台北市樹木保護條例
+                  <span id="badgeTreeProtect" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">無受保護樹木</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">基地內若有米高徑達0.8公尺以上或樹齡50年以上老樹，需提送樹木保護計畫。</p>
+              </div>
+            </div>
+
+            <!-- 文化資產保護 -->
+            <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-3">
+              <input type="checkbox" id="chkHeritage" class="mt-1 h-4 w-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+              <div class="flex-1">
+                <label for="chkHeritage" class="text-xs font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  文化資產周邊禁限建
+                  <span id="badgeHeritage" class="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600">無文資限制</span>
+                </label>
+                <p class="text-xs text-slate-500 mt-1">基地毗鄰指定古蹟或歷史建築保存區時，需提送文化局審議建築外觀與風貌配合。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 四、容積獎勵與移轉潛力分析 -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-rose-100 text-rose-700 rounded-md">🚀</span>
+              四、 容積獎勵與移轉潛力分析
+            </h2>
+            <span class="text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-medium">量體核心乘數</span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- 重建途徑評估 -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">評估開發途徑</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                  <input type="radio" name="devPath" value="危老重建" checked class="text-sky-600 focus:ring-sky-500" onchange="updateBonusCap()">
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">危老重建條例</div>
+                    <div class="text-[11px] text-slate-500">100%同意，上限30%+時程/規模</div>
+                  </div>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                  <input type="radio" name="devPath" value="都市更新" class="text-sky-600 focus:ring-sky-500" onchange="updateBonusCap()">
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">都市更新 (都更)</div>
+                    <div class="text-[11px] text-slate-500">多數決，上限50%或基準1.5倍</div>
+                  </div>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                  <input type="radio" name="devPath" value="一般建照" class="text-sky-600 focus:ring-sky-500" onchange="updateBonusCap()">
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">一般新建建照</div>
+                    <div class="text-[11px] text-slate-500">無危老都更獎勵，可申請容轉</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- 獎勵細項評估 -->
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700">獎勵項目規劃（依條例細項累加）</span>
+                <span id="bonusCapHint" class="text-xs text-rose-600 font-semibold">法定上限：40% (危老上限)</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label class="font-medium text-slate-700">耐震評估/耐震設計標章 (%)</label>
+                  <input id="bonusSeismic" type="number" step="0.5" value="10" class="mt-1 w-full text-sm font-mono-num px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-700">綠建築標章 (黃金/鑽石級) (%)</label>
+                  <input id="bonusGreen" type="number" step="0.5" value="8" class="mt-1 w-full text-sm font-mono-num px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-700">智慧建築標章 (銀級/黃金級) (%)</label>
+                  <input id="bonusSmart" type="number" step="0.5" value="6" class="mt-1 w-full text-sm font-mono-num px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-700">退縮人行步道 / 基地綠化 (%)</label>
+                  <input id="bonusSetback" type="number" step="0.5" value="8" class="mt-1 w-full text-sm font-mono-num px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-700">時程與規模累計獎勵 (%)</label>
+                  <input id="bonusTimeScale" type="number" step="0.5" value="6" class="mt-1 w-full text-sm font-mono-num px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-700">其他容積獎勵項目 (%)</label>
+                  <input id="bonusOther" type="number" step="0.5" value="0" class="mt-1 w-full text-sm font-mono-num px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                </div>
+              </div>
+
+              <!-- 獎勵容積小計條 -->
+              <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+                <span class="text-xs text-slate-600 font-semibold">擬申請獎勵總計：</span>
+                <span class="text-sm font-bold font-mono-num text-rose-600">
+                  <span id="totalBonusPct">38.0</span> % 
+                  <span id="bonusOverCapTag" class="hidden text-xs bg-rose-600 text-white px-2 py-0.5 rounded ml-2">已達上限</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- 容積移轉評估 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">容積移轉比例上限</label>
+                <select id="transferCapPct" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white" onchange="calculateAll()">
+                  <option value="30">法定容積之 30% (一般標準)</option>
+                  <option value="40" selected>法定容積之 40% (重大建設周邊)</option>
+                  <option value="0">不辦理容積移轉 (0%)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">實際預計購入移轉比例 (%)</label>
+                <input id="actualTransferPct" type="number" step="1" value="30" class="w-full text-sm font-mono-num font-semibold px-3 py-2 border border-slate-300 rounded-lg" oninput="calculateAll()">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">容轉取得管道建議</label>
+                <select id="transferChannel" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="公私各半（50%繳納代金，50%捐贈私設公保地）">公私各半（代金+公保地）</option>
+                  <option value="100% 台北市公有土地專案價購代金">100% 市府專案價購代金</option>
+                  <option value="100% 私有公共設施保留地捐贈">100% 私有公設保留地捐贈</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 五、建築量體與空間定量分析（初估） -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-blue-100 text-blue-700 rounded-md">🏢</span>
+              五、 建築量體與空間定量分析
+            </h2>
+            <span class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">即時聯動推算</span>
+          </div>
+
+          <!-- 容積推算表格 -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border border-slate-200 rounded-lg overflow-hidden">
+              <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5">容積組成項目</th>
+                  <th class="p-2.5">計算基礎</th>
+                  <th class="p-2.5 text-right">平方公尺 (m²)</th>
+                  <th class="p-2.5 text-right">樓地板面積 (坪)</th>
+                  <th class="p-2.5 text-right">佔比</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 font-mono-num">
+                <tr class="hover:bg-slate-50">
+                  <td class="p-2.5 font-sans font-semibold text-slate-800">A. 法定基準容積</td>
+                  <td class="p-2.5 font-sans text-slate-500">基地面積 × 法定容積率</td>
+                  <td id="calcBaseM2" class="p-2.5 text-right font-medium text-slate-700">7,000.00</td>
+                  <td id="calcBasePing" class="p-2.5 text-right font-bold text-slate-900">2,117.50</td>
+                  <td class="p-2.5 text-right text-slate-500 font-sans" id="calcBaseRatio">--</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="p-2.5 font-sans font-semibold text-slate-800">B. 獎勵容積面積</td>
+                  <td class="p-2.5 font-sans text-slate-500">基準容積 × 獎勵率 (<span id="txtBonusPct">38</span>%)</td>
+                  <td id="calcBonusM2" class="p-2.5 text-right font-medium text-slate-700">2,660.00</td>
+                  <td id="calcBonusPing" class="p-2.5 text-right font-bold text-rose-600">804.65</td>
+                  <td class="p-2.5 text-right text-slate-500 font-sans" id="calcBonusRatio">--</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="p-2.5 font-sans font-semibold text-slate-800">C. 容積移轉面積</td>
+                  <td class="p-2.5 font-sans text-slate-500">基準容積 × 移轉率 (<span id="txtTransferPct">30</span>%)</td>
+                  <td id="calcTransferM2" class="p-2.5 text-right font-medium text-slate-700">2,100.00</td>
+                  <td id="calcTransferPing" class="p-2.5 text-right font-bold text-sky-600">635.25</td>
+                  <td class="p-2.5 text-right text-slate-500 font-sans" id="calcTransferRatio">--</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="p-2.5 font-sans font-semibold text-slate-800">D. 免計容積 (梯廳、陽台、機電等)</td>
+                  <td class="p-2.5 font-sans text-slate-500">
+                    <div class="flex items-center gap-1">
+                      <span>粗估 (A+B+C) ×</span>
+                      <input id="exemptRate" type="number" step="0.5" value="15" class="w-12 px-1 py-0.5 border border-slate-300 rounded text-center text-xs" oninput="calculateAll()">
+                      <span>%</span>
+                    </div>
+                  </td>
+                  <td id="calcExemptM2" class="p-2.5 text-right font-medium text-slate-700">1,764.00</td>
+                  <td id="calcExemptPing" class="p-2.5 text-right font-bold text-amber-600">533.61</td>
+                  <td class="p-2.5 text-right text-slate-500 font-sans" id="calcExemptRatio">--</td>
+                </tr>
+                <tr class="bg-sky-50/70 font-bold border-t-2 border-sky-200">
+                  <td class="p-2.5 font-sans text-sky-950">🔺 最大總銷售 / 自用建築面積 (A+B+C+D)</td>
+                  <td class="p-2.5 font-sans text-sky-800 text-[11px]">地上層計容積加總</td>
+                  <td id="calcTotalGfaM2" class="p-2.5 text-right text-sky-900 font-bold">13,524.00</td>
+                  <td id="calcTotalGfaPing" class="p-2.5 text-right text-sky-700 text-sm font-black">4,091.01</td>
+                  <td class="p-2.5 text-right text-sky-800 font-sans">100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 量體型態與樓層參數設定 -->
+          <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">地上預估層數</label>
+              <div class="flex gap-2 items-center">
+                <input id="groundFloors" type="number" value="21" min="1" max="60" class="w-20 text-sm font-mono-num font-bold px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                <span class="text-xs text-slate-600">層 (標準層高 3.4m)</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">地下預估層數</label>
+              <div class="flex gap-2 items-center">
+                <input id="basementFloors" type="number" value="4" min="0" max="10" class="w-20 text-sm font-mono-num font-bold px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                <span class="text-xs text-slate-600">層 (開挖深度約 <span id="calcExcavationDepth" class="font-bold">14.8</span>m)</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">地下室最大開挖率 (%)</label>
+              <div class="flex gap-2 items-center">
+                <input id="excavationRate" type="number" value="70" min="10" max="95" class="w-20 text-sm font-mono-num font-bold px-3 py-1.5 border border-slate-300 rounded bg-white" oninput="calculateAll()">
+                <span class="text-xs text-slate-600">% (台北市法定約 70~80%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 停車位需求與動線檢討 -->
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1">
+                <span>法定停車位推算係數</span>
+                <span class="text-slate-400 font-normal">每 150m² (約45坪) 1部</span>
+              </div>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xs text-slate-600">預估法定汽車位需求：</span>
+                <span class="text-base font-bold font-mono-num text-slate-900"><span id="calcParkingCars">91</span> 輛</span>
+              </div>
+              <div class="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                <span>機車位預估 (1戶1機車位推估)：</span>
+                <span class="font-mono-num font-semibold" id="calcParkingMotor">約 95 輛</span>
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-200">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">車道出入口動線規劃</label>
+                <select id="drivewayAccess" class="w-full text-xs px-2 py-1 border border-slate-300 rounded bg-white">
+                  <option value="面臨主要道路留設雙向車道">面臨主要道路留設雙向車道</option>
+                  <option value="受限法規由次要巷道進出以減少主幹道回堵">由次要巷道進出（減緩主幹道干擾）</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">日照權與建築高度檢討</label>
+              <select id="sunlightReview" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white mb-1.5">
+                <option value="免檢討冬至日照權（商業區臨路寬度充足）">免檢討冬至日照權（商業區臨路寬充足）</option>
+                <option value="需檢討冬至日照權（住宅區受北向日照線管制）">需檢討冬至日照權（住宅區北向管制）</option>
+              </select>
+              <div class="text-[11px] text-slate-500">
+                預估總建物高度：<span id="calcTotalHeight" class="font-bold text-slate-800">71.4</span> 米（是否逾50m外審：<span id="calcOver50Tag" class="text-rose-600 font-bold">是</span>）
+              </div>
+              <div class="mt-2 pt-2 border-t border-slate-200">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">產品定位建議</label>
+                <select id="productType" class="w-full text-xs px-2 py-1 border border-slate-300 rounded bg-white">
+                  <option value="集合住宅複合低樓層店面">集合住宅複合低樓層店面</option>
+                  <option value="純高級集合住宅大樓">純高級集合住宅大樓</option>
+                  <option value="頂級商辦/企業企業總部">頂級商辦/企業總部大樓</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2.5D 量體視覺圖示 (Canvas) -->
+          <div class="mt-5 border border-slate-200 rounded-lg p-3 bg-slate-900 text-white">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
+                </svg>
+                建築量體草案斷面示意 (Massing Section Preview)
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono">比例尺度示意圖 (示意視圖)</span>
+            </div>
+            <div class="relative w-full h-48 bg-slate-950 rounded border border-slate-800 overflow-hidden flex items-center justify-center">
+              <canvas id="massingCanvas" class="w-full h-full block"></canvas>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- 六、開發時程與相關成本粗估 -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-cyan-100 text-cyan-700 rounded-md">⏱️</span>
+              六、 開發時程與相關成本粗估
+            </h2>
+            <span class="text-xs text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded font-medium">造價與時程推估</span>
+          </div>
+
+          <!-- 時程表 -->
+          <div class="space-y-3 mb-5">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">6.1 預定行政作業時程</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-slate-500 block mb-1">1. 鑽探及耐震初評</span>
+                <input id="timeSoil" type="number" value="2" class="w-16 px-2 py-1 text-xs border rounded bg-white font-mono-num font-bold"> 個月
+              </div>
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-slate-500 block mb-1">2. 危老/都更審查</span>
+                <input id="timeRegen" type="number" value="8" class="w-16 px-2 py-1 text-xs border rounded bg-white font-mono-num font-bold"> 個月
+              </div>
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-slate-500 block mb-1">3. 都市設計審議</span>
+                <input id="timeUd" type="number" value="6" class="w-16 px-2 py-1 text-xs border rounded bg-white font-mono-num font-bold"> 個月
+              </div>
+              <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span class="text-slate-500 block mb-1">4. 建照掛號審查</span>
+                <input id="timePermit" type="number" value="4" class="w-16 px-2 py-1 text-xs border rounded bg-white font-mono-num font-bold"> 個月
+              </div>
+            </div>
+            <div class="text-xs bg-sky-50 text-sky-800 p-2.5 rounded-lg border border-sky-200 flex items-center justify-between">
+              <span class="font-medium">🏁 預估取得建照總時程（扣除部分重疊作業平行推進）：</span>
+              <span class="font-bold font-mono-num text-sm text-sky-900"><span id="calcTotalMonths">16</span> ~ <span id="calcTotalMonthsMax">20</span> 個月</span>
+            </div>
+          </div>
+
+          <!-- 造價推估 -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">6.2 工程造價與規劃預算</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">結構系統與預估營造單價 (元/坪)</label>
+                <div class="flex gap-2">
+                  <select id="structureType" class="text-xs px-2 py-2 border border-slate-300 rounded-lg bg-white" onchange="autoFillCost()">
+                    <option value="SRC鋼骨鋼筋混凝土 (高樓層精品住宅)" selected>SRC 鋼骨鋼筋混凝土</option>
+                    <option value="SC純鋼骨結構 (超高層/豪宅)">SC 純鋼骨結構</option>
+                    <option value="RC鋼筋混凝土 (中高層一般標準)">RC 鋼筋混凝土</option>
+                  </select>
+                  <input id="costPerPing" type="number" value="320000" step="5000" class="flex-1 text-sm font-mono-num font-bold px-3 py-2 border border-slate-300 rounded-lg" oninput="calculateAll()">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">粗估總工程造價（含地下室）</label>
+                <div class="p-2 border border-slate-200 rounded-lg bg-slate-50 text-right">
+                  <div class="text-xs text-slate-500">地上總面積 × 單價 (地下室約以80%估算)</div>
+                  <div class="text-base font-bold font-mono-num text-emerald-700">約 NT$ <span id="calcTotalCostWan">15.8</span> 億元</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 建築師綜合評估結論與建議 -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="p-1.5 bg-violet-100 text-violet-700 rounded-md">📌</span>
+              建築師綜合評估結論與建議
+            </h2>
+            <div class="flex gap-2">
+              <button type="button" onclick="autoGenerateConclusion()" class="px-2.5 py-1 text-xs font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 rounded border border-violet-200 transition">
+                ⚡ 智慧彙整結論草稿
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">本案核心優勢 (Strengths)</label>
+              <textarea id="concStrengths" rows="2" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">基地臨30米主要計畫道路，面寬條件佳；產權結構相對單純，可爭取近38%危老獎勵及30%容積移轉，量體擴充效益極高。</textarea>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">本案潛在風險與技術瓶頸 (Risks & Bottlenecks)</label>
+              <textarea id="concRisks" rows="2" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">建物預估逾50公尺需辦理結構外審，地下4層需深開挖專案審查；周邊有老舊公寓鄰房，連續壁與地質支撐監測需加強以防鄰損爭議。</textarea>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">下一步行動建議 (Next Steps)</label>
+              <textarea id="concNextSteps" rows="2" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">1. 即刻啟動地質鑽探與結構耐震初評以鎖定危老掛號時程；2. 委託容積移轉仲介洽詢公保地評估取得成本；3. 進行初步都審步道系統退縮量體配置。</textarea>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right Column: Real-time Dashboard & KPI HUD (4 Cols) -->
+      <div class="lg:col-span-4 space-y-5">
+        
+        <!-- Summary Sticky Card -->
+        <div class="sticky top-20 space-y-4">
+          
+          <!-- Key Metrics Card -->
+          <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl shadow-lg p-5 border border-slate-700">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+              <span class="text-xs uppercase tracking-wider text-sky-400 font-bold">即時開發量體儀表板</span>
+              <span class="text-[10px] bg-sky-950 text-sky-300 px-2 py-0.5 rounded border border-sky-800">Auto Live</span>
+            </div>
+
+            <!-- GFA Big Number -->
+            <div class="mb-4">
+              <div class="text-xs text-slate-400">預估最大總銷售建築面積 (GFA)</div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black font-mono-num text-white" id="hudTotalPing">4,091</span>
+                <span class="text-sm font-semibold text-sky-400">坪</span>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-0.5">約 <span id="hudTotalM2" class="font-mono-num">13,524</span> 平方公尺</div>
+            </div>
+
+            <!-- Grid Stats -->
+            <div class="grid grid-cols-2 gap-3 py-3 border-y border-slate-700 text-xs">
+              <div>
+                <span class="text-slate-400 block text-[11px]">基地面積</span>
+                <span class="font-bold text-white font-mono-num" id="hudSitePing">378.1 坪</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">法定建蔽率 / 容積率</span>
+                <span class="font-bold text-white font-mono-num" id="hudZoningRates">56% / 560%</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">預估樓層規模</span>
+                <span class="font-bold text-white font-mono-num" id="hudFloors">地上21F / 地下4F</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">建築物總高度</span>
+                <span class="font-bold text-white font-mono-num" id="hudHeight">約 71.4 公尺</span>
+              </div>
+            </div>
+
+            <!-- Review Indicators -->
+            <div class="mt-4 space-y-1.5">
+              <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">特別行政與技術審查狀態</span>
+              <div class="flex flex-wrap gap-1.5" id="hudReviewBadges">
+                <span id="hudTagReview1" class="text-[10px] px-2 py-0.5 rounded font-medium bg-rose-900/60 text-rose-300 border border-rose-700">需結構外審</span>
+                <span id="hudTagReview2" class="text-[10px] px-2 py-0.5 rounded font-medium bg-rose-900/60 text-rose-300 border border-rose-700">需深開挖審查</span>
+                <span id="hudTagReview3" class="text-[10px] px-2 py-0.5 rounded font-medium bg-amber-900/60 text-amber-300 border border-amber-700">需都市設計審議</span>
+              </div>
+            </div>
+
+            <!-- Quick Budget & Timeline Indicator -->
+            <div class="mt-4 pt-3 border-t border-slate-700 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span class="text-[11px] text-slate-400 block">預估工程造價</span>
+                <span class="font-bold text-emerald-400 font-mono-num" id="hudTotalCost">約 15.8 億</span>
+              </div>
+              <div>
+                <span class="text-[11px] text-slate-400 block">取得建照時程</span>
+                <span class="font-bold text-sky-400 font-mono-num" id="hudTotalMonths">約 16~20 個月</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Card -->
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+            <span class="text-xs font-bold text-slate-800 block mb-2">快速成果產出 (Common Export Formats)</span>
+            
+            <button onclick="openReportPreview()" class="w-full text-left px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-300 transition flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded bg-emerald-600 animate-pulse"></span> 正式 A4 報告成果預覽
+              </span>
+              <span class="text-emerald-700 font-mono text-[11px] font-bold">PREVIEW</span>
+            </button>
+
+            <button onclick="exportToWord()" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 rounded-lg border border-slate-200 transition flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded bg-blue-600"></span> 匯出 Word 評估分析報告 (.doc)
+              </span>
+              <span class="text-slate-400">DOC</span>
+            </button>
+
+            <button onclick="exportToMarkdown()" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg border border-slate-200 transition flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded bg-slate-800"></span> 匯出 Markdown 範本格式 (.md)
+              </span>
+              <span class="text-slate-400">MD</span>
+            </button>
+
+            <button onclick="exportToCSV()" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg border border-slate-200 transition flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded bg-emerald-600"></span> 匯出量體試算試算表 (.csv)
+              </span>
+              <span class="text-slate-400">EXCEL</span>
+            </button>
+
+            <button onclick="exportToJSON()" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 rounded-lg border border-slate-200 transition flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded bg-amber-600"></span> 匯出完整專案存檔 (.json)
+              </span>
+              <span class="text-slate-400">JSON</span>
+            </button>
+
+            <button onclick="copyFormattedReport()" class="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-sky-50 hover:text-sky-700 rounded-lg border border-slate-200 transition flex items-center justify-between">
+              <span class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded bg-cyan-600"></span> 一鍵複製報告文字 (剪貼簿)
+              </span>
+              <span class="text-slate-400">COPY</span>
+            </button>
+          </div>
+
+          <!-- Professional Note -->
+          <div class="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200 leading-relaxed">
+            💡 <strong class="text-slate-700">建築師專業提醒：</strong>本系統推估數據以現行《台北市土地使用分區管制自治條例》及《都市危險及老舊建築物加速重建條例》為基礎，實際核准容積以都市設計審議委員會及主管建築機關核發執照核定結果為準。
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500 no-print">
+    <div class="max-w-7xl mx-auto px-4">
+      <p>台北市建築用地基地開發分析與設計評估系統 · 供建築師事務所與土地開發規劃初評使用</p>
+      <p class="text-[11px] text-slate-400 mt-1">支援法規檢討：土管規則、容積獎勵、移轉上限、結構深開挖外審警示與多格式報告匯出</p>
+    </div>
+  </footer>
+
+  <!-- Fullscreen Interactive Document Preview Modal -->
+  <div id="reportPreviewModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex justify-center p-3 sm:p-6">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col my-auto max-h-[92vh] overflow-hidden animate-fadeIn">
+      
+      <!-- Modal Header Toolbar -->
+      <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-10">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm border border-emerald-500/40">
+            📄
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              成果報告即時預覽
+              <span class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-normal">A4 Formal Report View</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">已自動彙整目前所有基地條件、土管法規、量體推估與建築師評估建議</p>
+          </div>
+        </div>
+
+        <!-- Toolbar Buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="exportToWord()" class="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white rounded transition shadow-sm">
+            下載 Word
+          </button>
+          <button onclick="window.print()" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-purple-600 hover:bg-purple-500 text-white rounded transition shadow-sm">
+            列印 / PDF
+          </button>
+          <button onclick="closeReportPreview()" class="px-2.5 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded border border-slate-700 transition">
+            ✕ 關閉
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Report Document Body -->
+      <div id="previewDocContent" class="overflow-y-auto p-6 sm:p-10 text-slate-800 text-xs sm:text-sm leading-relaxed space-y-6 bg-white select-text">
+        <!-- Content dynamically populated by renderPreviewContent() -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex items-center justify-between text-xs text-slate-500">
+        <span>此預覽視圖與匯出 Word / PDF 之章節結構完全同步</span>
+        <div class="flex gap-2">
+          <button onclick="copyFormattedReport()" class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 bg-slate-100 rounded transition border border-slate-300">
+            複製純文字
+          </button>
+          <button onclick="closeReportPreview()" class="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded transition">
+            返回編輯
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- 1. State and Calculation Constants ---
+    const PING_FACTOR = 0.3025; // 1 m2 = 0.3025 坪
+    const M2_FACTOR = 3.305785;  // 1 坪 = 3.305785 m2
+
+    // Elements Lookup Helper
+    const $ = id => document.getElementById(id);
+
+    // Initialize Default Dates & Event Listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      if ($('evalDate')) $('evalDate').value = today;
+
+      // Event Listeners for Area 2-way sync
+      $('areaM2').addEventListener('input', () => {
+        const m2 = parseFloat($('areaM2').value) || 0;
+        $('areaPing').value = (m2 * PING_FACTOR).toFixed(2);
+        calculateAll();
+      });
+
+      $('areaPing').addEventListener('input', () => {
+        const ping = parseFloat($('areaPing').value) || 0;
+        $('areaM2').value = (ping * M2_FACTOR).toFixed(2);
+        calculateAll();
+      });
+
+      // Zoning & Checkboxes Event Listeners
+      ['coverageRate', 'farRate', 'groundFloors', 'basementFloors', 'excavationRate'].forEach(id => {
+        $(id).addEventListener('input', calculateAll);
+      });
+
+      // Special Review Checkboxes
+      const checkIds = ['chkStructuralReview', 'chkDeepExcavation', 'chkUrbanDesign', 'chkTrafficImpact', 'chkHillside', 'chkEIA', 'chkTreeProtect', 'chkHeritage'];
+      checkIds.forEach(id => {
+        $(id).addEventListener('change', () => {
+          updateReviewBadges();
+          renderReviewHUD();
+        });
+      });
+
+      // Export Dropdown Click Outside
+      const exportBtn = $('btnExportMenu');
+      const exportMenu = $('exportMenu');
+      exportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportMenu.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => {
+        if (!exportMenu.classList.contains('hidden')) {
+          exportMenu.classList.add('hidden');
+        }
+      });
+
+      // Buttons
+      $('btnLoadDemo').addEventListener('click', loadDemoData);
+
+      // Window resize re-draw canvas
+      window.addEventListener('resize', drawMassingCanvas);
+
+      // Initial Calculation
+      calculateAll();
+      updateBonusCap();
+    });
+
+    // --- 2. Preset Zoning Applicator ---
+    function applyZonePreset(name, cov, far) {
+      $('zoningName').value = name;
+      $('coverageRate').value = cov;
+      $('farRate').value = far;
+      showToast(`已套用「${name}」土管標準：建蔽率 ${cov}% / 容積率 ${far}%`);
+      calculateAll();
+    }
+
+    // --- 3. Dynamic Calculation Engine ---
+    function calculateAll() {
+      // 1. Get Base Land Area
+      const areaM2 = parseFloat($('areaM2').value) || 0;
+      const areaPing = parseFloat($('areaPing').value) || (areaM2 * PING_FACTOR);
+      const covPct = parseFloat($('coverageRate').value) || 0;
+      const farPct = parseFloat($('farRate').value) || 0;
+
+      // 2. Bonus Calculation
+      const bonusSeismic = parseFloat($('bonusSeismic').value) || 0;
+      const bonusGreen = parseFloat($('bonusGreen').value) || 0;
+      const bonusSmart = parseFloat($('bonusSmart').value) || 0;
+      const bonusSetback = parseFloat($('bonusSetback').value) || 0;
+      const bonusTimeScale = parseFloat($('bonusTimeScale').value) || 0;
+      const bonusOther = parseFloat($('bonusOther').value) || 0;
+      let totalBonus = bonusSeismic + bonusGreen + bonusSmart + bonusSetback + bonusTimeScale + bonusOther;
+
+      // Determine cap based on chosen path
+      const selectedPath = document.querySelector('input[name="devPath"]:checked')?.value || '危老重建';
+      let bonusCap = 40;
+      if (selectedPath === '都市更新') bonusCap = 50;
+      if (selectedPath === '一般建照') bonusCap = 0;
+
+      // Bonus over cap display
+      const isOverCap = totalBonus > bonusCap;
+      const effectiveBonus = isOverCap ? bonusCap : totalBonus;
+      $('totalBonusPct').innerText = totalBonus.toFixed(1);
+      $('bonusOverCapTag').classList.toggle('hidden', !isOverCap);
+      $('txtBonusPct').innerText = effectiveBonus.toFixed(1);
+
+      // 3. Transfer FAR
+      const transferPct = parseFloat($('actualTransferPct').value) || 0;
+      $('txtTransferPct').innerText = transferPct.toFixed(1);
+
+      // 4. Area breakdown
+      // A. Base FAR
+      const baseFarM2 = areaM2 * (farPct / 100);
+      const baseFarPing = baseFarM2 * PING_FACTOR;
+
+      // B. Bonus Area
+      const bonusM2 = baseFarM2 * (effectiveBonus / 100);
+      const bonusPing = bonusM2 * PING_FACTOR;
+
+      // C. Transfer Area
+      const transferM2 = baseFarM2 * (transferPct / 100);
+      const transferPing = transferM2 * PING_FACTOR;
+
+      // D. Exempt Area (15% by default)
+      const exemptRate = (parseFloat($('exemptRate').value) || 15) / 100;
+      const exemptM2 = (baseFarM2 + bonusM2 + transferM2) * exemptRate;
+      const exemptPing = exemptM2 * PING_FACTOR;
+
+      // Total GFA
+      const totalGfaM2 = baseFarM2 + bonusM2 + transferM2 + exemptM2;
+      const totalGfaPing = totalGfaM2 * PING_FACTOR;
+
+      // Update Table
+      $('calcBaseM2').innerText = formatNum(baseFarM2);
+      $('calcBasePing').innerText = formatNum(baseFarPing);
+      $('calcBonusM2').innerText = formatNum(bonusM2);
+      $('calcBonusPing').innerText = formatNum(bonusPing);
+      $('calcTransferM2').innerText = formatNum(transferM2);
+      $('calcTransferPing').innerText = formatNum(transferPing);
+      $('calcExemptM2').innerText = formatNum(exemptM2);
+      $('calcExemptPing').innerText = formatNum(exemptPing);
+      $('calcTotalGfaM2').innerText = formatNum(totalGfaM2);
+      $('calcTotalGfaPing').innerText = formatNum(totalGfaPing);
+
+      // Percentage column
+      if (totalGfaM2 > 0) {
+        $('calcBaseRatio').innerText = ((baseFarM2 / totalGfaM2) * 100).toFixed(1) + '%';
+        $('calcBonusRatio').innerText = ((bonusM2 / totalGfaM2) * 100).toFixed(1) + '%';
+        $('calcTransferRatio').innerText = ((transferM2 / totalGfaM2) * 100).toFixed(1) + '%';
+        $('calcExemptRatio').innerText = ((exemptM2 / totalGfaM2) * 100).toFixed(1) + '%';
+      }
+
+      // Height and Excavation Depth
+      const groundFloors = parseInt($('groundFloors').value) || 1;
+      const basementFloors = parseInt($('basementFloors').value) || 0;
+      const estHeight = (groundFloors * 3.4).toFixed(1);
+      const estExcavation = (basementFloors * 3.7).toFixed(1);
+
+      $('calcTotalHeight').innerText = estHeight;
+      $('calcExcavationDepth').innerText = estExcavation;
+
+      // Auto update structural review triggers
+      if (parseFloat(estHeight) > 50) {
+        $('chkStructuralReview').checked = true;
+        $('calcOver50Tag').innerText = '是 (超過50m需外審)';
+        $('calcOver50Tag').className = 'text-rose-600 font-bold';
+      } else {
+        $('calcOver50Tag').innerText = '否 (未滿50m)';
+        $('calcOver50Tag').className = 'text-emerald-600 font-bold';
+      }
+
+      if (parseFloat(estExcavation) >= 12 || basementFloors >= 3) {
+        $('chkDeepExcavation').checked = true;
+      }
+
+      updateReviewBadges();
+
+      // Parking Estimation
+      // 依台北市標準約每150平方公尺設1汽車位
+      const cars = Math.max(1, Math.round(totalGfaM2 / 150));
+      $('calcParkingCars').innerText = cars;
+      $('calcParkingMotor').innerText = `約 ${Math.round(cars * 1.05)} 輛`;
+
+      // Construction Cost Estimation
+      const costPerPing = parseFloat($('costPerPing').value) || 0;
+      const excavRate = (parseFloat($('excavationRate').value) || 70) / 100;
+      const basementPing = (areaPing * excavRate) * basementFloors;
+      const groundCost = totalGfaPing * costPerPing;
+      const undergroundCost = basementPing * (costPerPing * 0.9); // 地下室營造單價約90%
+      const totalCostWan = ((groundCost + undergroundCost) / 100000000).toFixed(2);
+      $('calcTotalCostWan').innerText = totalCostWan;
+
+      // Schedule Timeline summation
+      const tSoil = parseInt($('timeSoil').value) || 0;
+      const tRegen = parseInt($('timeRegen').value) || 0;
+      const tUd = $('chkUrbanDesign').checked ? (parseInt($('timeUd').value) || 0) : 0;
+      const tPermit = parseInt($('timePermit').value) || 0;
+
+      // Critical path estimation with overlap
+      const minMonths = Math.max(tSoil + tRegen + tPermit, Math.round((tSoil + tRegen + tUd + tPermit) * 0.75));
+      const maxMonths = tSoil + tRegen + tUd + tPermit;
+      $('calcTotalMonths').innerText = minMonths;
+      $('calcTotalMonthsMax').innerText = maxMonths;
+
+      // Update Right HUD
+      $('hudTotalPing').innerText = Math.round(totalGfaPing).toLocaleString();
+      $('hudTotalM2').innerText = Math.round(totalGfaM2).toLocaleString();
+      $('hudSitePing').innerText = `${areaPing.toFixed(1)} 坪`;
+      $('hudZoningRates').innerText = `${covPct}% / ${farPct}%`;
+      $('hudFloors').innerText = `地上${groundFloors}F / 地下${basementFloors}F`;
+      $('hudHeight').innerText = `約 ${estHeight} 米`;
+      $('hudTotalCost').innerText = `約 ${totalCostWan} 億`;
+      $('hudTotalMonths').innerText = `約 ${minMonths}~${maxMonths} 個月`;
+
+      renderReviewHUD();
+      drawMassingCanvas();
+    }
+
+    // --- 4. Review Badges Updater ---
+    function updateReviewBadges() {
+      setReviewBadge('chkStructuralReview', 'badgeStructuralReview', '需結構外審', '未達門檻');
+      setReviewBadge('chkDeepExcavation', 'badgeDeepExcavation', '需深開挖審查', '未達門檻');
+      setReviewBadge('chkUrbanDesign', 'badgeUrbanDesign', '需辦理都審', '免都審');
+      setReviewBadge('chkTrafficImpact', 'badgeTrafficImpact', '需提送交評', '免辦交評');
+      setReviewBadge('chkHillside', 'badgeHillside', '列管山坡地/地質敏感', '平地非敏感');
+      setReviewBadge('chkEIA', 'badgeEIA', '達環評門檻', '免辦環評');
+      setReviewBadge('chkTreeProtect', 'badgeTreeProtect', '有列管老樹受保護', '無受保護樹木');
+      setReviewBadge('chkHeritage', 'badgeHeritage', '周邊文資禁限建', '無文資限制');
+    }
+
+    function setReviewBadge(chkId, badgeId, activeText, normalText) {
+      const isChecked = $(chkId).checked;
+      const el = $(badgeId);
+      if (isChecked) {
+        el.innerText = activeText;
+        el.className = 'text-[10px] px-2 py-0.5 rounded font-semibold bg-rose-100 text-rose-700 border border-rose-200';
+      } else {
+        el.innerText = normalText;
+        el.className = 'text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 text-slate-600';
+      }
+    }
+
+    function renderReviewHUD() {
+      const container = $('hudReviewBadges');
+      container.innerHTML = '';
+
+      const reviews = [
+        { id: 'chkStructuralReview', label: '結構外審' },
+        { id: 'chkDeepExcavation', label: '深開挖審查' },
+        { id: 'chkUrbanDesign', label: '都市設計審議' },
+        { id: 'chkTrafficImpact', label: '交通影響評估' },
+        { id: 'chkHillside', label: '山坡地/地質評估' },
+        { id: 'chkEIA', label: '環境影響評估' },
+        { id: 'chkTreeProtect', label: '老樹保護計畫' },
+        { id: 'chkHeritage', label: '文資外觀審議' },
+      ];
+
+      let anyRequired = false;
+      reviews.forEach(r => {
+        if ($(r.id).checked) {
+          anyRequired = true;
+          const badge = document.createElement('span');
+          badge.className = 'text-[10px] px-2 py-0.5 rounded font-medium bg-rose-950 text-rose-300 border border-rose-800';
+          badge.innerText = `● ${r.label}`;
+          container.appendChild(badge);
+        }
+      });
+
+      if (!anyRequired) {
+        const badge = document.createElement('span');
+        badge.className = 'text-[10px] px-2 py-0.5 rounded font-medium bg-emerald-950 text-emerald-300 border border-emerald-800';
+        badge.innerText = '✓ 無特殊外審管制門檻';
+        container.appendChild(badge);
+      }
+    }
+
+    // --- 5. Update Bonus Cap when Path Changes ---
+    function updateBonusCap() {
+      const selectedPath = document.querySelector('input[name="devPath"]:checked')?.value || '危老重建';
+      const hint = $('bonusCapHint');
+      if (selectedPath === '危老重建') {
+        hint.innerText = '法定上限：40% (基準容積30% + 時程/規模上限10%)';
+      } else if (selectedPath === '都市更新') {
+        hint.innerText = '法定上限：50% 或 基準容積 1.5 倍';
+      } else {
+        hint.innerText = '一般建造執照掛號：無都更/危老法定獎勵容積';
+      }
+      calculateAll();
+    }
+
+    // --- 6. 2.5D Massing Section Canvas Visualizer ---
+    function drawMassingCanvas() {
+      const canvas = $('massingCanvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      canvas.width = w;
+      canvas.height = h;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const groundFloors = parseInt($('groundFloors').value) || 1;
+      const basementFloors = parseInt($('basementFloors').value) || 0;
+      const covPct = parseFloat($('coverageRate').value) || 50;
+
+      // Coordinate systems
+      const groundY = h * 0.65;
+      const centerX = w / 2;
+
+      // Draw Ground Horizon Line
+      ctx.beginPath();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.moveTo(20, groundY);
+      ctx.lineTo(w - 20, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('±0.00 地面路面標高', 25, groundY - 6);
+
+      // Base Lot Dimensions
+      const siteWidth = Math.min(w * 0.7, 340);
+      const siteLeft = centerX - (siteWidth / 2);
+
+      // Draw Site Boundary
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(siteLeft, groundY - 2, siteWidth, 4);
+
+      // Building Footprint Width according to Coverage
+      const buildingWidth = siteWidth * (covPct / 100);
+      const buildingLeft = centerX - (buildingWidth / 2);
+
+      // Draw Above Ground Building
+      const availableHeightAbove = groundY - 25;
+      const floorH = Math.min(10, Math.max(3, availableHeightAbove / groundFloors));
+      const totalBuildH = groundFloors * floorH;
+      const buildingTop = groundY - totalBuildH;
+
+      // Building Body Gradient
+      const gradAbove = ctx.createLinearGradient(buildingLeft, buildingTop, buildingLeft + buildingWidth, groundY);
+      gradAbove.addColorStop(0, '#0284c7');
+      gradAbove.addColorStop(1, '#0369a1');
+
+      ctx.fillStyle = gradAbove;
+      ctx.fillRect(buildingLeft, buildingTop, buildingWidth, totalBuildH);
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(buildingLeft, buildingTop, buildingWidth, totalBuildH);
+
+      // Draw Floor Dividing Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      for (let f = 1; f < groundFloors; f++) {
+        const fy = groundY - (f * floorH);
+        ctx.beginPath();
+        ctx.moveTo(buildingLeft, fy);
+        ctx.lineTo(buildingLeft + buildingWidth, fy);
+        ctx.stroke();
+      }
+
+      // Draw Setback / Walkway indicator
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      ctx.fillRect(siteLeft, groundY - 8, (siteWidth - buildingWidth) / 2, 8);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('退縮人行帶', siteLeft + 4, groundY - 12);
+
+      // Draw Basement
+      if (basementFloors > 0) {
+        const excavRate = (parseFloat($('excavationRate').value) || 70) / 100;
+        const bsWidth = siteWidth * excavRate;
+        const bsLeft = centerX - (bsWidth / 2);
+        const bsFloorH = Math.min(12, Math.max(6, (h - groundY - 15) / basementFloors));
+        const bsTotalH = basementFloors * bsFloorH;
+
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(bsLeft, groundY, bsWidth, bsTotalH);
+        ctx.strokeStyle = '#64748b';
+        ctx.strokeRect(bsLeft, groundY, bsWidth, bsTotalH);
+
+        for (let b = 1; b < basementFloors; b++) {
+          const by = groundY + (b * bsFloorH);
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.moveTo(bsLeft, by);
+          ctx.lineTo(bsLeft + bsWidth, by);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '9px JetBrains Mono';
+        ctx.fillText(`地下 ${basementFloors}F (開挖深約 ${$('calcExcavationDepth').innerText}m)`, bsLeft + 6, groundY + bsTotalH - 6);
+      }
+
+      // Elevation Height Label on side
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillText(`地上 ${groundFloors}F · 頂部 +${$('calcTotalHeight').innerText}m`, buildingLeft, buildingTop - 6);
+    }
+
+    // --- 7. Auto Drafting Recommendations ---
+    function autoGenerateConclusion() {
+      const zone = $('zoningName').value;
+      const path = document.querySelector('input[name="devPath"]:checked')?.value || '危老重建';
+      const ping = $('hudTotalPing').innerText;
+      const height = $('calcTotalHeight').innerText;
+      const isOver50 = parseFloat(height) > 50;
+      const isUd = $('chkUrbanDesign').checked;
+
+      $('concStrengths').value = `本案座落於台北市核心區段，法定分區為「${zone}」，具備高度彈性之使用價值。採「${path}」途徑可爭取充裕容積獎勵及容積移轉，最大總銷售樓地板規模推估達約 ${ping} 坪，空間開發效益顯著。`;
+      
+      let risks = `建物預估總高達 ${height} 米${isOver50 ? '（已逾50米需辦理結構外審）' : ''}，地下層開挖深約 ${$('calcExcavationDepth').innerText} 米依法需辦理深開挖安全審查。`;
+      if (isUd) risks += ` 本案需送都市設計審議委員會審議，特別注意沿街步道退縮與開放空間綠美化規範。`;
+      risks += ` 鄰房密集，地下室連續壁與鄰房現況鑑定、監測計畫需列為關鍵安全要項。`;
+      $('concRisks').value = risks;
+
+      $('concNextSteps').value = `1. 完成地質鑽探並委託土木/結構技師公會初評結構耐震等級。\n2. 擬具${path}計畫書提送台北市都更處/建管處正式掛號，鎖定時程獎勵。\n3. 就容積移轉之代金繳納與私有公保地購入進行精確成本效益比較。\n4. 啟動都市設計審議退縮與立面配置規劃。`;
+
+      showToast('已根據當前規劃參數智慧彙整建築師評估草稿！');
+    }
+
+    // --- 8. Cost Presets by Structure ---
+    function autoFillCost() {
+      const type = $('structureType').value;
+      if (type.includes('SRC')) {
+        $('costPerPing').value = 320000;
+      } else if (type.includes('SC')) {
+        $('costPerPing').value = 360000;
+      } else {
+        $('costPerPing').value = 260000;
+      }
+      calculateAll();
+    }
+
+    // Helper to gather all inputs
+    function collectReportData() {
+      const selectedPath = document.querySelector('input[name="devPath"]:checked')?.value || '危老重建';
+      return {
+        projName: $('projName').value || '未命名專案',
+        evalDate: $('evalDate').value || new Date().toISOString().split('T')[0],
+        archName: $('archName').value || '建築師事務所',
+        clientName: $('clientName').value || '委託業主',
+
+        siteLocation: $('siteLocation').value,
+        lotNumbers: $('lotNumbers').value,
+        areaM2: $('areaM2').value,
+        areaPing: $('areaPing').value,
+        landOwnership: $('landOwnership').value,
+        propRestriction: $('propRestriction').value,
+
+        roadMainWidth: $('roadMainWidth').value,
+        roadMainType: $('roadMainType').value,
+        roadSubWidth: $('roadSubWidth').value,
+        roadSubType: $('roadSubType').value,
+        lineStatus: $('lineStatus').value,
+        fireLane: $('fireLane').value,
+        irregularLand: $('irregularLand').value,
+
+        neighborLeft: $('neighborLeft').value,
+        neighborRight: $('neighborRight').value,
+        neighborBack: $('neighborBack').value,
+
+        powerEquip: $('powerEquip').value,
+        sewerSystem: $('sewerSystem').value,
+
+        zoningName: $('zoningName').value,
+        coverageRate: $('coverageRate').value,
+        farRate: $('farRate').value,
+        plannedUsage: $('plannedUsage').value,
+        usageCompliance: $('usageCompliance').value,
+        specialZoningNotice: $('specialZoningNotice').value,
+
+        chkStructuralReview: $('chkStructuralReview').checked,
+        chkDeepExcavation: $('chkDeepExcavation').checked,
+        chkUrbanDesign: $('chkUrbanDesign').checked,
+        chkTrafficImpact: $('chkTrafficImpact').checked,
+        chkHillside: $('chkHillside').checked,
+        chkEIA: $('chkEIA').checked,
+        chkTreeProtect: $('chkTreeProtect').checked,
+        chkHeritage: $('chkHeritage').checked,
+
+        devPath: selectedPath,
+        bonusSeismic: $('bonusSeismic').value,
+        bonusGreen: $('bonusGreen').value,
+        bonusSmart: $('bonusSmart').value,
+        bonusSetback: $('bonusSetback').value,
+        bonusTimeScale: $('bonusTimeScale').value,
+        bonusOther: $('bonusOther').value,
+        effectiveBonus: $('txtBonusPct').innerText,
+
+        transferCapPct: $('transferCapPct').value,
+        actualTransferPct: $('actualTransferPct').value,
+        transferChannel: $('transferChannel').value,
+
+        exemptRate: $('exemptRate').value,
+        groundFloors: $('groundFloors').value,
+        basementFloors: $('basementFloors').value,
+        excavationRate: $('excavationRate').value,
+        drivewayAccess: $('drivewayAccess').value,
+        sunlightReview: $('sunlightReview').value,
+        productType: $('productType').value,
+
+        calcBaseM2: $('calcBaseM2').innerText,
+        calcBasePing: $('calcBasePing').innerText,
+        calcBonusM2: $('calcBonusM2').innerText,
+        calcBonusPing: $('calcBonusPing').innerText,
+        calcTransferM2: $('calcTransferM2').innerText,
+        calcTransferPing: $('calcTransferPing').innerText,
+        calcExemptM2: $('calcExemptM2').innerText,
+        calcExemptPing: $('calcExemptPing').innerText,
+        calcTotalGfaM2: $('calcTotalGfaM2').innerText,
+        calcTotalGfaPing: $('calcTotalGfaPing').innerText,
+        calcParkingCars: $('calcParkingCars').innerText,
+        calcParkingMotor: $('calcParkingMotor').innerText,
+        calcTotalHeight: $('calcTotalHeight').innerText,
+        calcExcavationDepth: $('calcExcavationDepth').innerText,
+
+        timeSoil: $('timeSoil').value,
+        timeRegen: $('timeRegen').value,
+        timeUd: $('timeUd').value,
+        timePermit: $('timePermit').value,
+        calcTotalMonths: $('calcTotalMonths').innerText,
+        calcTotalMonthsMax: $('calcTotalMonthsMax').innerText,
+
+        structureType: $('structureType').value,
+        costPerPing: $('costPerPing').value,
+        calcTotalCostWan: $('calcTotalCostWan').innerText,
+
+        concStrengths: $('concStrengths').value,
+        concRisks: $('concRisks').value,
+        concNextSteps: $('concNextSteps').value,
+      };
+    }
+
+    // Helper: Download Blob
+    function downloadBlob(content, filename, contentType) {
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 200);
+    }
+
+    // --- 9. Export Functions ---
+
+    // 9.1 Export to Word (.doc)
+    function exportToWord() {
+      const data = collectReportData();
+      const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${data.projName} - 建築用地基地開發分析報告</title>
+          <style>
+            body { font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif; line-height: 1.6; color: #1e293b; padding: 20pt; }
+            h1 { color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 8px; font-size: 20pt; }
+            h2 { color: #0369a1; border-left: 4px solid #0284c7; padding-left: 8px; font-size: 14pt; margin-top: 18pt; }
+            h3 { color: #334155; font-size: 11pt; margin-top: 10pt; }
+            table { width: 100%; border-collapse: collapse; margin: 10pt 0; font-size: 10pt; }
+            th, td { border: 1px solid #cbd5e1; padding: 6pt 8pt; text-align: left; }
+            th { background-color: #f1f5f9; color: #0f172a; }
+            .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10pt; margin: 10pt 0; border-radius: 4pt; }
+            .badge { background: #e0f2fe; color: #0369a1; padding: 2pt 5pt; border-radius: 3pt; font-size: 9pt; }
+          </style>
+        </head>
+        <body>
+          <h1>台北市建築用地基地開發分析報告</h1>
+          <div class="kpi-box">
+            <strong>專案名稱：</strong>${data.projName}<br>
+            <strong>評估日期：</strong>${data.evalDate}<br>
+            <strong>規劃建築師：</strong>${data.archName}<br>
+            <strong>委託業主：</strong>${data.clientName}
+          </div>
+
+          <h2>一、 土地基本資料與現況調查</h2>
+          <p><strong>座落位置：</strong>${data.siteLocation}</p>
+          <p><strong>地號：</strong>${data.lotNumbers}</p>
+          <p><strong>土地總面積：</strong>${data.areaM2} 平方公尺（約 ${data.areaPing} 坪）</p>
+          <p><strong>土地所有權：</strong>${data.landOwnership}</p>
+          <p><strong>產權限制：</strong>${data.propRestriction}</p>
+          <p><strong>周邊道路條件：</strong>主面臨 ${data.roadMainWidth} 米道路（${data.roadMainType}）；次面臨 ${data.roadSubWidth} 米道路（${data.roadSubType}）</p>
+          <p><strong>建築線指定：</strong>${data.lineStatus}</p>
+          <p><strong>消防通道與佔用：</strong>${data.fireLane} / ${data.irregularLand}</p>
+          <p><strong>鄰房現況：</strong>${data.neighborLeft}；${data.neighborRight}；${data.neighborBack}</p>
+          <p><strong>公用事業管線：</strong>${data.powerEquip}；${data.sewerSystem}</p>
+
+          <h2>二、 都市計畫與土地使用管制</h2>
+          <p><strong>土地使用分區：</strong>${data.zoningName}</p>
+          <p><strong>法定建蔽率 / 容積率：</strong>建蔽率 ${data.coverageRate}% / 容積率 ${data.farRate}%</p>
+          <p><strong>規劃開發業種：</strong>${data.plannedUsage}（${data.usageCompliance}）</p>
+          <p><strong>特別退縮管制：</strong>${data.specialZoningNotice}</p>
+
+          <h2>三、 法規限制與特別審查門檻</h2>
+          <table>
+            <tr><th>審查項目</th><th>法定檢討標準</th><th>本案評估判定</th></tr>
+            <tr><td>結構外審</td><td>高度逾50公尺或鋼結構特殊案</td><td>${data.chkStructuralReview ? '【需辦理結構外審】' : '未達標準'}</td></tr>
+            <tr><td>深開挖審查</td><td>開挖逾12米或地下3層以上</td><td>${data.chkDeepExcavation ? '【需深開挖安全專案審查】' : '未達標準'}</td></tr>
+            <tr><td>都市設計審議</td><td>特定專用區或特定退縮條件</td><td>${data.chkUrbanDesign ? '【需都市設計審議】' : '免都市設計審議'}</td></tr>
+            <tr><td>交通影響評估</td><td>衍生大量停車位規模</td><td>${data.chkTrafficImpact ? '【達交評標準】' : '免辦交通影響評估'}</td></tr>
+            <tr><td>山坡地/地質</td><td>坡度坵塊及地質敏感調查</td><td>${data.chkHillside ? '【屬山坡地/敏感區】' : '非敏感區'}</td></tr>
+            <tr><td>環境影響評估</td><td>逾120米或超大型商業</td><td>${data.chkEIA ? '【需環境影響評估】' : '免環境影響評估'}</td></tr>
+            <tr><td>老樹保護條例</td><td>米高徑達0.8m或樹齡50年</td><td>${data.chkTreeProtect ? '【有受保護老樹】' : '無受保護樹木'}</td></tr>
+            <tr><td>文化資產保護</td><td>古蹟與歷史建築周邊</td><td>${data.chkHeritage ? '【涉及文資外觀審議】' : '無文資限制'}</td></tr>
+          </table>
+
+          <h2>四、 容積獎勵與移轉潛力分析</h2>
+          <p><strong>開發途徑：</strong>${data.devPath}</p>
+          <p><strong>預估容積獎勵細項：</strong>耐震(${data.bonusSeismic}%)、綠建築(${data.bonusGreen}%)、智慧建築(${data.bonusSmart}%)、退縮步道(${data.bonusSetback}%)、時程與規模(${data.bonusTimeScale}%)、其他(${data.bonusOther}%)</p>
+          <p><strong>有效爭取獎勵率：</strong>${data.effectiveBonus}%</p>
+          <p><strong>容積移轉評估：</strong>預計購入 ${data.actualTransferPct}%（上限 ${data.transferCapPct}%），取得管道：${data.transferChannel}</p>
+
+          <h2>五、 建築量體與空間定量推估</h2>
+          <table>
+            <tr><th>項目</th><th>計算基礎</th><th>平方公尺 (m²)</th><th>坪數 (坪)</th></tr>
+            <tr><td>A. 法定基準容積</td><td>基地面積 × 法定容積率</td><td>${data.calcBaseM2}</td><td>${data.calcBasePing}</td></tr>
+            <tr><td>B. 獎勵容積面積</td><td>基準容積 × 獎勵率 (${data.effectiveBonus}%)</td><td>${data.calcBonusM2}</td><td>${data.calcBonusPing}</td></tr>
+            <tr><td>C. 容積移轉面積</td><td>基準容積 × 移轉率 (${data.actualTransferPct}%)</td><td>${data.calcTransferM2}</td><td>${data.calcTransferPing}</td></tr>
+            <tr><td>D. 免計容積</td><td>(A+B+C) × ${data.exemptRate}%</td><td>${data.calcExemptM2}</td><td>${data.calcExemptPing}</td></tr>
+            <tr><th>🔺 最大總銷售面積 (A+B+C+D)</th><th>合計總樓地板面積</th><th>${data.calcTotalGfaM2}</th><th>${data.calcTotalGfaPing}</th></tr>
+          </table>
+          <p><strong>預估量體規模：</strong>地上 ${data.groundFloors} 層 / 地下 ${data.basementFloors} 層，總高度約 ${data.calcTotalHeight} 公尺</p>
+          <p><strong>停車需求推估：</strong>汽車約 ${data.calcParkingCars} 輛，機車 ${data.calcParkingMotor}</p>
+          <p><strong>車道動線與產品定位：</strong>${data.drivewayAccess}；${data.productType}</p>
+
+          <h2>六、 開發時程與工程成本粗估</h2>
+          <p><strong>預定取得建照時程：</strong>約 ${data.calcTotalMonths} ~ ${data.calcTotalMonthsMax} 個月</p>
+          <p><strong>結構系統與造價單價：</strong>${data.structureType}，約 ${data.costPerPing} 元/坪</p>
+          <p><strong>預估總工程造價：</strong>約 NT$ ${data.calcTotalCostWan} 億元</p>
+
+          <h2>七、 建築師綜合評估結論與建議</h2>
+          <p><strong>本案核心優勢：</strong><br>${data.concStrengths.replace(/\n/g, '<br>')}</p>
+          <p><strong>本案潛在風險與技術瓶頸：</strong><br>${data.concRisks.replace(/\n/g, '<br>')}</p>
+          <p><strong>下一步行動建議：</strong><br>${data.concNextSteps.replace(/\n/g, '<br>')}</p>
+          
+          <hr style="margin-top: 30pt; border-top: 1px solid #cbd5e1;">
+          <p style="text-align: right; font-size: 10pt; color: #64748b;">規劃建築師事務所：${data.archName}（用印簽章）</p>
+        </body>
+        </html>
+      `;
+      downloadBlob(htmlContent, `${data.projName}_基地開發分析報告.doc`, 'application/msword;charset=utf-8');
+      showToast('已匯出 Word 報告格式 (.doc)！');
+    }
+
+    // 9.2 Export to Markdown (.md)
+    function exportToMarkdown() {
+      const d = collectReportData();
+      const md = `# 台北市建築用地基地開發分析報告
+## 📄 報告基本資訊
+* **專案名稱**：${d.projName}
+* **評估日期**：${d.evalDate}
+* **規劃建築師**：${d.archName}
+* **委託業主**：${d.clientName}
+---
+## 一、 📍 土地基本資料與現況調查
+### 1.1 地籍基本資訊
+* **座落位置**：${d.siteLocation}
+* **地號**：${d.lotNumbers}
+* **土地總面積**：${d.areaM2} 平方公尺（約 ${d.areaPing} 坪）
+* **土地所有權**：${d.landOwnership}
+* **產權限制**：${d.propRestriction}
+
+### 1.2 周邊道路與鄰房條件
+* **面臨道路**：
+  * 主面臨道路：${d.roadMainWidth} 米 [${d.roadMainType}]
+  * 次面臨道路：${d.roadSubWidth} 米 [${d.roadSubType}]
+* **建築線指定**：${d.lineStatus}
+* **消防通道**：${d.fireLane}
+* **鄰房現況**：
+  * 左側：${d.neighborLeft}
+  * 右側：${d.neighborRight}
+  * 後側：${d.neighborBack}
+* **畸零地關係**：${d.irregularLand}
+
+### 1.3 公用事業管線現況
+* **台電設備**：${d.powerEquip}
+* **污水下水道**：${d.sewerSystem}
+---
+## 二、 ⚖️ 都市計畫與土地使用管制（土管分析）
+### 2.1 土地使用分區管制
+* **法定土地分區**：${d.zoningName}
+* **法定建蔽率**：${d.coverageRate} %
+* **法定容積率**：${d.farRate} %
+* **法定基準容積面積**：基地面積 × 法定容積率 = ${d.calcBaseM2} 平方公尺（約 ${d.calcBasePing} 坪）
+
+### 2.2 允許使用項目查核
+* **業主預計業種**：${d.plannedUsage}
+* **法規合規性**：${d.usageCompliance}
+* **特別管制規定**：${d.specialZoningNotice}
+---
+## 三、 🔍 法規限制與特別審查評估
+### 3.1 結構與深開挖審查
+* **結構外審**：${d.chkStructuralReview ? '[X] 預計建築高度超過 50 公尺（需外審）' : '[ ] 未達外審標準'}
+* **深開挖審查**：${d.chkDeepExcavation ? '[X] 地下層開挖深度達 12 公尺（或 3 層樓）以上（需外審）' : '[ ] 未達標準'}
+
+### 3.2 地質與環境敏感度
+* **山坡地管制**：${d.chkHillside ? '[X] 屬於山坡地範圍或地質敏感區' : '[ ] 非山坡地'}
+* **環境影響評估**：${d.chkEIA ? '[X] 規模已達環評標準' : '[ ] 免辦理環境影響評估'}
+
+### 3.3 行政審查與文資保護
+* **都市設計審議**：${d.chkUrbanDesign ? '[X] 達都審標準（需送審）' : '[ ] 免都市設計審議'}
+* **交通影響評估**：${d.chkTrafficImpact ? '[X] 達交評標準' : '[ ] 免交通影響評估'}
+* **樹木保護條例**：${d.chkTreeProtect ? '[X] 基地內有列管老樹' : '[ ] 無列管樹木'}
+* **文化資產保護**：${d.chkHeritage ? '[X] 周邊涉及古蹟/歷史建築禁限建' : '[ ] 無涉及'}
+---
+## 四、 🚀 容積獎勵與移轉潛力分析
+### 4.1 重建途徑評估
+* **評估路徑**：${d.devPath}
+
+| 重建途徑 | 適用資格分析 | 預估時程 | 預估獎勵上限 |
+| :--- | :--- | :--- | :--- |
+| **危老重建** | 結構耐震初評未達標 / 100% 同意 | 約 ${d.timeRegen} 個月 | 最高 30% + 時程/規模獎勵 |
+| **都市更新** | 達劃定指標 / 多數決同意 | 約 ${Math.round(parseInt(d.timeRegen)*1.8)} 個月 | 最高 50% 或 基準 1.5 倍 |
+
+### 4.2 容積獎勵項目規劃（預估）
+* 耐震設計標章獎勵：${d.bonusSeismic} %
+* 綠建築標章獎勵：${d.bonusGreen} %
+* 智慧建築標章獎勵：${d.bonusSmart} %
+* 基地退縮留設人行步道獎勵：${d.bonusSetback} %
+* 時程與規模獎勵：${d.bonusTimeScale} %
+* 其他獎勵項目：${d.bonusOther} %
+* **預估可爭取獎勵容積總計**：${d.effectiveBonus} %
+
+### 4.3 容積移轉評估
+* **可接受容轉上限**：法定容積之 ${d.transferCapPct} %
+* **預估購入移轉比例**：${d.actualTransferPct} %（約 ${d.calcTransferPing} 坪 / ${d.calcTransferM2} m²）
+* **取得管道建議**：${d.transferChannel}
+---
+## 五、 🏢 建築量體與空間定量分析（初估）
+### 5.1 容積與免計容積加總推算
+* A. 法定基準容積面積：${d.calcBasePing} 坪 (${d.calcBaseM2} m²)
+* B. 預估獎勵面積：${d.calcBonusPing} 坪 (${d.calcBonusM2} m²)
+* C. 預估移轉容積面積：${d.calcTransferPing} 坪 (${d.calcTransferM2} m²)
+* D. 免計容積（梯廳、機電、陽台等，粗估 ${d.exemptRate}%）：${d.calcExemptPing} 坪 (${d.calcExemptM2} m²)
+* 🔺 **最大總銷售/自用建築面積 (A+B+C+D)**：${d.calcTotalGfaPing} 坪 (${d.calcTotalGfaM2} m²)
+
+### 5.2 建築高度與法規檢討
+* **預估總高度**：${d.calcTotalHeight} 公尺（${d.chkStructuralReview ? '需外審' : '免外審'}）
+* **冬至日照權**：${d.sunlightReview}
+
+### 5.3 地下室與停車規劃
+* **地下室最大開挖率限制**：${d.excavationRate} %
+* **法定停車位需求推估**：約 ${d.calcParkingCars} 輛汽車，${d.calcParkingMotor}
+* **車道出入口動線**：${d.drivewayAccess}
+
+### 5.4 初步量體草案（Massing）
+* **預估地上層數**：${d.groundFloors} 層
+* **預估地下層數**：${d.basementFloors} 層
+* **產品定位建議**：${d.productType}
+---
+## 六、 ⏱️ 開發時程與相關成本粗估
+### 6.1 預定行政時程表
+1. 鑽探及地基調查、耐震初評：約 ${d.timeSoil} 個月
+2. 危老/都更計畫書審查：約 ${d.timeRegen} 個月
+3. 都市設計審議（若需要）：約 ${d.timeUd} 個月
+4. 建造執照掛號與審查：約 ${d.timePermit} 個月
+* 🏁 **預估取得建照總時程**：自簽約起約 ${d.calcTotalMonths} ~ ${d.calcTotalMonthsMax} 個月
+
+### 6.2 工程與規劃成本粗估
+* **預估營造施工單價**：約 NT$ ${d.costPerPing} 元 / 坪（${d.structureType}）
+* **預估總工程造價**：約 NT$ ${d.calcTotalCostWan} 億元
+---
+## 📌 建築師綜合評估結論與建議
+* **本案核心優勢**：
+${d.concStrengths}
+
+* **本案潛在風險/技術瓶頸**：
+${d.concRisks}
+
+* **下一步行動建議**：
+${d.concNextSteps}
+`;
+      downloadBlob(md, `${d.projName}_基地開發分析.md`, 'text/markdown;charset=utf-8');
+      showToast('已匯出 Markdown 格式 (.md)！');
+    }
+
+    // 9.3 Export to CSV (.csv)
+    function exportToCSV() {
+      const d = collectReportData();
+      const csv = `\uFEFF專案名稱,${d.projName}
+評估日期,${d.evalDate}
+建築師事務所,${d.archName}
+委託業主,${d.clientName}
+土地座落,${d.siteLocation}
+地號,${d.lotNumbers}
+基地面積(m2),${d.areaM2}
+基地面積(坪),${d.areaPing}
+土地使用分區,${d.zoningName}
+法定建蔽率(%),${d.coverageRate}
+法定容積率(%),${d.farRate}
+地上層數,${d.groundFloors}
+地下層數,${d.basementFloors}
+預估建築高度(m),${d.calcTotalHeight}
+項目,面積(m2),面積(坪)
+A.法定基準容積,${d.calcBaseM2},${d.calcBasePing}
+B.獎勵容積面積,${d.calcBonusM2},${d.calcBonusPing}
+C.容積移轉面積,${d.calcTransferM2},${d.calcTransferPing}
+D.免計容積面積,${d.calcExemptM2},${d.calcExemptPing}
+合計最大總樓地板,${d.calcTotalGfaM2},${d.calcTotalGfaPing}
+預估法定車位(輛),${d.calcParkingCars}
+預估工程造價(億元),${d.calcTotalCostWan}
+取得建照時程(月),${d.calcTotalMonths}~${d.calcTotalMonthsMax}
+`;
+      downloadBlob(csv, `${d.projName}_量體試算表.csv`, 'text/csv;charset=utf-8');
+      showToast('已匯出 CSV 試算表格式！');
+    }
+
+    // 9.4 Export to JSON (.json)
+    function exportToJSON() {
+      const data = collectReportData();
+      const jsonStr = JSON.stringify(data, null, 2);
+      downloadBlob(jsonStr, `${data.projName}_開發分析存檔.json`, 'application/json;charset=utf-8');
+      showToast('已匯出 JSON 專案設定存檔！');
+    }
+
+    // 9.5 Import from JSON (.json)
+    function importJSONFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          applyLoadedData(data);
+          showToast(`已成功讀取專案存檔：「${data.projName || file.name}」！`);
+        } catch (err) {
+          showToast('JSON 檔案讀取失敗，請確認格式正確。');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function applyLoadedData(d) {
+      if (d.projName !== undefined) $('projName').value = d.projName;
+      if (d.evalDate !== undefined) $('evalDate').value = d.evalDate;
+      if (d.archName !== undefined) $('archName').value = d.archName;
+      if (d.clientName !== undefined) $('clientName').value = d.clientName;
+      if (d.siteLocation !== undefined) $('siteLocation').value = d.siteLocation;
+      if (d.lotNumbers !== undefined) $('lotNumbers').value = d.lotNumbers;
+      if (d.areaM2 !== undefined) $('areaM2').value = d.areaM2;
+      if (d.areaPing !== undefined) $('areaPing').value = d.areaPing;
+      if (d.landOwnership !== undefined) $('landOwnership').value = d.landOwnership;
+      if (d.propRestriction !== undefined) $('propRestriction').value = d.propRestriction;
+      if (d.roadMainWidth !== undefined) $('roadMainWidth').value = d.roadMainWidth;
+      if (d.roadMainType !== undefined) $('roadMainType').value = d.roadMainType;
+      if (d.roadSubWidth !== undefined) $('roadSubWidth').value = d.roadSubWidth;
+      if (d.roadSubType !== undefined) $('roadSubType').value = d.roadSubType;
+      if (d.lineStatus !== undefined) $('lineStatus').value = d.lineStatus;
+      if (d.fireLane !== undefined) $('fireLane').value = d.fireLane;
+      if (d.irregularLand !== undefined) $('irregularLand').value = d.irregularLand;
+      if (d.neighborLeft !== undefined) $('neighborLeft').value = d.neighborLeft;
+      if (d.neighborRight !== undefined) $('neighborRight').value = d.neighborRight;
+      if (d.neighborBack !== undefined) $('neighborBack').value = d.neighborBack;
+      if (d.powerEquip !== undefined) $('powerEquip').value = d.powerEquip;
+      if (d.sewerSystem !== undefined) $('sewerSystem').value = d.sewerSystem;
+      if (d.zoningName !== undefined) $('zoningName').value = d.zoningName;
+      if (d.coverageRate !== undefined) $('coverageRate').value = d.coverageRate;
+      if (d.farRate !== undefined) $('farRate').value = d.farRate;
+      if (d.plannedUsage !== undefined) $('plannedUsage').value = d.plannedUsage;
+      if (d.usageCompliance !== undefined) $('usageCompliance').value = d.usageCompliance;
+      if (d.specialZoningNotice !== undefined) $('specialZoningNotice').value = d.specialZoningNotice;
+
+      if (d.chkStructuralReview !== undefined) $('chkStructuralReview').checked = d.chkStructuralReview;
+      if (d.chkDeepExcavation !== undefined) $('chkDeepExcavation').checked = d.chkDeepExcavation;
+      if (d.chkUrbanDesign !== undefined) $('chkUrbanDesign').checked = d.chkUrbanDesign;
+      if (d.chkTrafficImpact !== undefined) $('chkTrafficImpact').checked = d.chkTrafficImpact;
+      if (d.chkHillside !== undefined) $('chkHillside').checked = d.chkHillside;
+      if (d.chkEIA !== undefined) $('chkEIA').checked = d.chkEIA;
+      if (d.chkTreeProtect !== undefined) $('chkTreeProtect').checked = d.chkTreeProtect;
+      if (d.chkHeritage !== undefined) $('chkHeritage').checked = d.chkHeritage;
+
+      if (d.bonusSeismic !== undefined) $('bonusSeismic').value = d.bonusSeismic;
+      if (d.bonusGreen !== undefined) $('bonusGreen').value = d.bonusGreen;
+      if (d.bonusSmart !== undefined) $('bonusSmart').value = d.bonusSmart;
+      if (d.bonusSetback !== undefined) $('bonusSetback').value = d.bonusSetback;
+      if (d.bonusTimeScale !== undefined) $('bonusTimeScale').value = d.bonusTimeScale;
+      if (d.bonusOther !== undefined) $('bonusOther').value = d.bonusOther;
+
+      if (d.devPath) {
+        const radios = document.getElementsByName('devPath');
+        radios.forEach(r => { if (r.value === d.devPath) r.checked = true; });
+        updateBonusCap();
+      }
+
+      if (d.actualTransferPct !== undefined) $('actualTransferPct').value = d.actualTransferPct;
+      if (d.groundFloors !== undefined) $('groundFloors').value = d.groundFloors;
+      if (d.basementFloors !== undefined) $('basementFloors').value = d.basementFloors;
+      if (d.costPerPing !== undefined) $('costPerPing').value = d.costPerPing;
+      if (d.concStrengths !== undefined) $('concStrengths').value = d.concStrengths;
+      if (d.concRisks !== undefined) $('concRisks').value = d.concRisks;
+      if (d.concNextSteps !== undefined) $('concNextSteps').value = d.concNextSteps;
+
+      calculateAll();
+    }
+
+    // --- 9.6 Live Report Document Preview Functions ---
+    function openReportPreview() {
+      renderPreviewContent();
+      const modal = $('reportPreviewModal');
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeReportPreview() {
+      const modal = $('reportPreviewModal');
+      modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function renderPreviewContent() {
+      const d = collectReportData();
+      const container = $('previewDocContent');
+
+      container.innerHTML = `
+        <!-- Report Letterhead Header -->
+        <div class="border-b-2 border-slate-900 pb-4 mb-6">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-xs font-bold tracking-widest text-sky-700 uppercase">Taipei City Architectural Feasibility Study</span>
+              <h1 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">${d.projName}</h1>
+              <p class="text-xs text-slate-500 mt-0.5">建築用地基地開發分析與量體規模評估報告書</p>
+            </div>
+            <div class="text-right">
+              <span class="inline-block bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-1 rounded">台北市土管模組</span>
+              <div class="text-xs text-slate-500 mt-1.5 font-mono">日期：${d.evalDate || '2026 年未填'}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 0. 專案基本資料卡片 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+          <div>
+            <span class="text-slate-400 block">專案名稱</span>
+            <span class="font-bold text-slate-800">${d.projName}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">規劃建築師 / 事務所</span>
+            <span class="font-bold text-slate-800">${d.archName}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">委託業主 / 開發商</span>
+            <span class="font-bold text-slate-800">${d.clientName}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">預定開發途徑</span>
+            <span class="font-bold text-rose-600">${d.devPath}</span>
+          </div>
+        </div>
+
+        <!-- 一、土地基本資料與現況調查 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-emerald-600 rounded-sm"></span> 一、 土地基本資料與現況調查
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <p><strong class="text-slate-700">座落位置：</strong>${d.siteLocation}</p>
+            <p><strong class="text-slate-700">地號及筆數：</strong>${d.lotNumbers}</p>
+            <p><strong class="text-slate-700">土地總面積：</strong><span class="font-mono font-bold text-slate-900">${d.areaM2}</span> m²（約 <span class="font-mono font-bold text-slate-900">${d.areaPing}</span> 坪）</p>
+            <p><strong class="text-slate-700">土地所有權屬：</strong>${d.landOwnership}</p>
+            <p><strong class="text-slate-700">產權限制/他項權利：</strong>${d.propRestriction}</p>
+            <p><strong class="text-slate-700">臨路條件：</strong>主面臨 ${d.roadMainWidth} 米道路（${d.roadMainType}）；次面臨 ${d.roadSubWidth} 米（${d.roadSubType}）</p>
+            <p><strong class="text-slate-700">建築線指定狀況：</strong>${d.lineStatus}</p>
+            <p><strong class="text-slate-700">台北市消防通道：</strong>${d.fireLane}</p>
+            <p><strong class="text-slate-700">畸零地與佔用情況：</strong>${d.irregularLand}</p>
+            <p><strong class="text-slate-700">公用管線現況：</strong>${d.powerEquip}；${d.sewerSystem}</p>
+          </div>
+          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs">
+            <span class="font-semibold text-slate-700 block mb-1">周邊鄰房現況調查：</span>
+            <ul class="list-disc list-inside text-slate-600 space-y-0.5">
+              <li>左側鄰房：${d.neighborLeft}</li>
+              <li>右側鄰房：${d.neighborRight}</li>
+              <li>後側鄰房：${d.neighborBack}</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 二、都市計畫與土地使用管制 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-indigo-600 rounded-sm"></span> 二、 都市計畫與土地使用管制（土管分析）
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded text-center">
+              <span class="text-slate-500 block text-xs">法定使用分區</span>
+              <span class="font-bold text-slate-900 text-sm">${d.zoningName}</span>
+            </div>
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded text-center">
+              <span class="text-slate-500 block text-xs">法定建蔽率</span>
+              <span class="font-mono font-bold text-slate-900 text-sm">${d.coverageRate} %</span>
+            </div>
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded text-center">
+              <span class="text-slate-500 block text-xs">法定容積率</span>
+              <span class="font-mono font-bold text-slate-900 text-sm">${d.farRate} %</span>
+            </div>
+          </div>
+          <p class="text-xs"><strong class="text-slate-700">規劃開發業種與適法性：</strong>${d.plannedUsage}（${d.usageCompliance}）</p>
+          <p class="text-xs"><strong class="text-slate-700">特別管制規定：</strong>${d.specialZoningNotice}</p>
+        </div>
+
+        <!-- 三、法規限制與特別審查評估 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-amber-600 rounded-sm"></span> 三、 法規限制與特別審查評估
+          </h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs border border-slate-200">
+              <thead class="bg-slate-100 text-slate-700 font-semibold border-b">
+                <tr>
+                  <th class="p-2 text-left">審查評估項目</th>
+                  <th class="p-2 text-left">法定門檻標準</th>
+                  <th class="p-2 text-center">本案檢核判定</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr>
+                  <td class="p-2 font-medium">結構外審</td>
+                  <td class="p-2 text-slate-500">建築高度 > 50m 或特殊鋼構造</td>
+                  <td class="p-2 text-center font-bold ${d.chkStructuralReview ? 'text-rose-600' : 'text-emerald-700'}">${d.chkStructuralReview ? '● 需辦理外審' : '○ 未達門檻'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">深開挖安全專案審查</td>
+                  <td class="p-2 text-slate-500">地下開挖深度 ≥ 12m 或地下層 ≥ 3層</td>
+                  <td class="p-2 text-center font-bold ${d.chkDeepExcavation ? 'text-rose-600' : 'text-emerald-700'}">${d.chkDeepExcavation ? '● 需辦理深開挖審查' : '○ 未達門檻'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">都市設計審議 (都審)</td>
+                  <td class="p-2 text-slate-500">特定分區管制、規模門檻或獎勵退縮申請</td>
+                  <td class="p-2 text-center font-bold ${d.chkUrbanDesign ? 'text-rose-600' : 'text-emerald-700'}">${d.chkUrbanDesign ? '● 需辦理都審' : '○ 免辦都審'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">交通影響評估 (交評)</td>
+                  <td class="p-2 text-slate-500">衍生大量汽車位需求或龐大商場面積</td>
+                  <td class="p-2 text-center font-bold ${d.chkTrafficImpact ? 'text-rose-600' : 'text-emerald-700'}">${d.chkTrafficImpact ? '● 達交評標準' : '○ 免辦交評'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">山坡地與地質敏感區</td>
+                  <td class="p-2 text-slate-500">台北市列管山坡地範圍及地質災害調查</td>
+                  <td class="p-2 text-center font-bold ${d.chkHillside ? 'text-rose-600' : 'text-emerald-700'}">${d.chkHillside ? '● 屬敏感區' : '○ 非列管坡地'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">環境影響評估 (環評)</td>
+                  <td class="p-2 text-slate-500">高樓建築達 120m 以上或大型開發案</td>
+                  <td class="p-2 text-center font-bold ${d.chkEIA ? 'text-rose-600' : 'text-emerald-700'}">${d.chkEIA ? '● 達環評門檻' : '○ 免辦環評'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">台北市樹木保護條例</td>
+                  <td class="p-2 text-slate-500">基地內樹徑 ≥ 0.8m 或樹齡 ≥ 50年老樹</td>
+                  <td class="p-2 text-center font-bold ${d.chkTreeProtect ? 'text-rose-600' : 'text-emerald-700'}">${d.chkTreeProtect ? '● 有受保護老樹' : '○ 無受保護樹木'}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-medium">文化資產周邊禁限建</td>
+                  <td class="p-2 text-slate-500">毗鄰古蹟、歷史建築受風貌審議管制</td>
+                  <td class="p-2 text-center font-bold ${d.chkHeritage ? 'text-rose-600' : 'text-emerald-700'}">${d.chkHeritage ? '● 涉及文資審議' : '○ 無文資限制'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 四、容積獎勵與移轉潛力分析 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-rose-600 rounded-sm"></span> 四、 容積獎勵與移轉潛力分析
+          </h2>
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded text-xs space-y-1.5">
+            <div class="flex justify-between font-semibold text-slate-800">
+              <span>評估路徑：${d.devPath}</span>
+              <span class="text-rose-600">預估有效爭取獎勵率：${d.effectiveBonus} %</span>
+            </div>
+            <div class="text-slate-600 grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-slate-200">
+              <div>耐震設計標章：${d.bonusSeismic}%</div>
+              <div>綠建築標章：${d.bonusGreen}%</div>
+              <div>智慧建築標章：${d.bonusSmart}%</div>
+              <div>基地退縮人行道：${d.bonusSetback}%</div>
+              <div>時程與規模累計：${d.bonusTimeScale}%</div>
+              <div>其他獎勵項目：${d.bonusOther}%</div>
+            </div>
+          </div>
+          <p class="text-xs">
+            <strong class="text-slate-700">容積移轉規劃：</strong>
+            法定容積移轉上限為 ${d.transferCapPct}%，本案預計購入 <span class="font-bold text-sky-700 font-mono">${d.actualTransferPct}%</span>（取得約 <span class="font-bold font-mono">${d.calcTransferPing}</span> 坪容積），取得管道建議採「${d.transferChannel}」。
+          </p>
+        </div>
+
+        <!-- 五、建築量體與空間定量分析 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-blue-600 rounded-sm"></span> 五、 建築量體與空間定量分析
+          </h2>
+          <table class="w-full text-xs border border-slate-200">
+            <thead class="bg-slate-100 text-slate-700 font-semibold border-b">
+              <tr>
+                <th class="p-2 text-left">容積組成項目</th>
+                <th class="p-2 text-left">推估基礎</th>
+                <th class="p-2 text-right">平方公尺 (m²)</th>
+                <th class="p-2 text-right">坪數 (坪)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 font-mono">
+              <tr>
+                <td class="p-2 font-sans font-medium">A. 法定基準容積</td>
+                <td class="p-2 font-sans text-slate-500">基地面積 × 法定容積率</td>
+                <td class="p-2 text-right">${d.calcBaseM2}</td>
+                <td class="p-2 text-right font-bold text-slate-900">${d.calcBasePing}</td>
+              </tr>
+              <tr>
+                <td class="p-2 font-sans font-medium">B. 獎勵容積面積</td>
+                <td class="p-2 font-sans text-slate-500">基準容積 × 獎勵率 (${d.effectiveBonus}%)</td>
+                <td class="p-2 text-right">${d.calcBonusM2}</td>
+                <td class="p-2 text-right font-bold text-rose-600">${d.calcBonusPing}</td>
+              </tr>
+              <tr>
+                <td class="p-2 font-sans font-medium">C. 容積移轉面積</td>
+                <td class="p-2 font-sans text-slate-500">基準容積 × 容轉率 (${d.actualTransferPct}%)</td>
+                <td class="p-2 text-right">${d.calcTransferM2}</td>
+                <td class="p-2 text-right font-bold text-sky-600">${d.calcTransferPing}</td>
+              </tr>
+              <tr>
+                <td class="p-2 font-sans font-medium">D. 免計容積 (梯廳/陽台/機電)</td>
+                <td class="p-2 font-sans text-slate-500">(A+B+C) × ${d.exemptRate}%</td>
+                <td class="p-2 text-right">${d.calcExemptM2}</td>
+                <td class="p-2 text-right font-bold text-amber-600">${d.calcExemptPing}</td>
+              </tr>
+              <tr class="bg-sky-50/80 font-bold border-t-2 border-sky-300">
+                <td class="p-2.5 font-sans text-sky-950">🔺 最大總銷售 / 自用建築面積 (GFA)</td>
+                <td class="p-2.5 font-sans text-sky-800 text-[11px]">總樓地板合計</td>
+                <td class="p-2.5 text-right text-sky-900">${d.calcTotalGfaM2}</td>
+                <td class="p-2.5 text-right text-sky-700 text-sm font-black">${d.calcTotalGfaPing}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div class="p-2 bg-slate-50 border rounded">
+              <span class="text-slate-400 block">量體樓層規模</span>
+              <span class="font-bold text-slate-800">地上 ${d.groundFloors}F / 地下 ${d.basementFloors}F</span>
+            </div>
+            <div class="p-2 bg-slate-50 border rounded">
+              <span class="text-slate-400 block">建物總高度</span>
+              <span class="font-bold text-slate-800">約 ${d.calcTotalHeight} 公尺</span>
+            </div>
+            <div class="p-2 bg-slate-50 border rounded">
+              <span class="text-slate-400 block">法定汽車停車位</span>
+              <span class="font-bold text-slate-800">約 ${d.calcParkingCars} 輛</span>
+            </div>
+            <div class="p-2 bg-slate-50 border rounded">
+              <span class="text-slate-400 block">地下開挖深度</span>
+              <span class="font-bold text-slate-800">約 ${d.calcExcavationDepth} 公尺</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 六、開發時程與工程成本粗估 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-cyan-600 rounded-sm"></span> 六、 開發時程與工程成本粗估
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded">
+              <span class="font-bold text-slate-800 block mb-1">預估行政時程</span>
+              <p>行政審查路徑：地調(${d.timeSoil}月) → 危老/都更審查(${d.timeRegen}月) → 都審(${d.timeUd}月) → 建照審查(${d.timePermit}月)</p>
+              <div class="mt-2 text-sky-800 font-bold">🏁 預估取得建照總時程：約 ${d.calcTotalMonths} ~ ${d.calcTotalMonthsMax} 個月</div>
+            </div>
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded">
+              <span class="font-bold text-slate-800 block mb-1">工程造價推估</span>
+              <p>結構形式：${d.structureType}</p>
+              <p>預估營造單價：NT$ ${d.costPerPing} 元/坪</p>
+              <div class="mt-2 text-emerald-700 font-bold">💰 預估總工程造價：約 NT$ ${d.calcTotalCostWan} 億元</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 七、建築師綜合評估結論與建議 -->
+        <div class="space-y-3">
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-1.5">
+            <span class="w-2 h-4 bg-violet-600 rounded-sm"></span> 七、 建築師綜合評估結論與建議
+          </h2>
+          <div class="space-y-2 text-xs">
+            <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded">
+              <strong class="text-emerald-900 block mb-1">【本案核心優勢】</strong>
+              <p class="text-emerald-800 leading-relaxed">${d.concStrengths.replace(/\n/g, '<br>')}</p>
+            </div>
+            <div class="p-3 bg-rose-50/60 border border-rose-200 rounded">
+              <strong class="text-rose-900 block mb-1">【本案潛在風險與技術瓶頸】</strong>
+              <p class="text-rose-800 leading-relaxed">${d.concRisks.replace(/\n/g, '<br>')}</p>
+            </div>
+            <div class="p-3 bg-sky-50/60 border border-sky-200 rounded">
+              <strong class="text-sky-900 block mb-1">【下一步行動建議】</strong>
+              <p class="text-sky-800 leading-relaxed">${d.concNextSteps.replace(/\n/g, '<br>')}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 簽署用印蓋章欄 -->
+        <div class="pt-8 mt-8 border-t border-slate-300 grid grid-cols-2 gap-4 text-xs text-slate-500">
+          <div>
+            <p>委託單位確認簽核：</p>
+            <div class="mt-8 border-b border-dashed border-slate-400 w-48"></div>
+            <p class="mt-1">${d.clientName}</p>
+          </div>
+          <div class="text-right">
+            <p>規劃建築師簽章：</p>
+            <div class="mt-8 border-b border-dashed border-slate-400 w-48 ml-auto"></div>
+            <p class="mt-1">${d.archName}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper: Toast message
+    function showToast(message) {
+      const toast = $('toast');
+      const toastMsg = $('toastMsg');
+      toastMsg.innerText = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3200);
+    }
+
+    // Clipboard Copy Utility
+    function copyFormattedReport() {
+      const d = collectReportData();
+      const text = `【${d.projName}】台北市建築用地基地開發分析報告
+評估日期：${d.evalDate} | 建築師：${d.archName} | 委託業主：${d.clientName}
+
+[一、土地基本資料]
+座落位置：${d.siteLocation} (${d.lotNumbers})
+基地總面積：${d.areaM2} m² (${d.areaPing} 坪)
+道路條件：主面臨 ${d.roadMainWidth}m ${d.roadMainType} / 次面臨 ${d.roadSubWidth}m ${d.roadSubType}
+建築線：${d.lineStatus} | 消防通道：${d.fireLane}
+
+[二、土管條件]
+使用分區：${d.zoningName} (建蔽率 ${d.coverageRate}% / 容積率 ${d.farRate}%)
+基準容積：${d.calcBasePing} 坪 (${d.calcBaseM2} m²)
+
+[三、法規審查門檻]
+結構外審：${d.chkStructuralReview ? '需辦理' : '未達'} | 深開挖審查：${d.chkDeepExcavation ? '需辦理' : '未達'} | 都審：${d.chkUrbanDesign ? '需送審' : '免'}
+
+[四、容積獎勵與移轉]
+路徑：${d.devPath} (獎勵率 ${d.effectiveBonus}%)
+容積移轉：${d.actualTransferPct}% (${d.transferChannel})
+
+[五、建築量體推算]
+預估樓層：地上 ${d.groundFloors}F / 地下 ${d.basementFloors}F (總高 ${d.calcTotalHeight}m)
+最大總銷樓地板 (GFA)：${d.calcTotalGfaPing} 坪 (${d.calcTotalGfaM2} m²)
+法定車位推估：汽車約 ${d.calcParkingCars} 輛 / 機車約 ${d.calcParkingMotor}
+
+[六、造價與時程]
+預估取得建照時程：約 ${d.calcTotalMonths}~${d.calcTotalMonthsMax} 個月
+預估總工程造價：約 NT$ ${d.calcTotalCostWan} 億元 (${d.structureType})
+
+[建築師建議]
+核心優勢：${d.concStrengths}
+潛在風險：${d.concRisks}
+行動建議：${d.concNextSteps}
+`;
+
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('已成功複製完整文字報告至剪貼簿！');
+      } catch (err) {
+        showToast('複製失敗，請手動選取文字。');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function formatNum(num) {
+      return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // --- 10. Load Demo Data ---
+    function loadDemoData() {
+      $('projName').value = '台北市大安區忠孝復興商圈更新案';
+      $('siteLocation').value = '台北市大安區忠孝東路三段';
+      $('lotNumbers').value = '懷生段三小段 120, 121 等共 2 筆';
+      $('areaM2').value = '1250.00';
+      $('areaPing').value = '378.12';
+      $('zoningName').value = '第三種商業區 (商三)';
+      $('coverageRate').value = '56';
+      $('farRate').value = '560';
+      $('plannedUsage').value = '集合住宅複合低樓層精品店鋪及商務事務所';
+      $('groundFloors').value = '21';
+      $('basementFloors').value = '4';
+      $('bonusSeismic').value = '10';
+      $('bonusGreen').value = '8';
+      $('bonusSmart').value = '6';
+      $('bonusSetback').value = '8';
+      $('bonusTimeScale').value = '6';
+      $('actualTransferPct').value = '30';
+      $('costPerPing').value = '320000';
+      $('chkUrbanDesign').checked = true;
+      $('chkStructuralReview').checked = true;
+      $('chkDeepExcavation').checked = true;
+      autoGenerateConclusion();
+      calculateAll();
+      showToast('已載入示範專案參數！');
+    }
+  </script>
+</body>
+</html>
