@@ -1,0 +1,7 @@
+{
+  "name": "SPL-ai-tool-Site-Analysis-System",
+  "description": "台北市建築用地基地開發分析與設計評估系統 - 協助建築師進行設計評估與土地開發的互動式工具，支援量體試算、法規檢核與多格式匯出報告。",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
